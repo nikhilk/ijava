@@ -1,0 +1,54 @@
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>net.nikhilk</groupId>
+    <artifactId>ijava</artifactId>
+    <version>0.1</version>
+  </parent>
+  <groupId>net.nikhilk.ijava</groupId>
+  <artifactId>shell</artifactId>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <build>
+    <directory>${project.basedir}/../../build/shell</directory>
+    <sourceDirectory>${project.basedir}/src</sourceDirectory>
+    <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.eclipse.jdt</groupId>
+      <artifactId>org.eclipse.jdt.core</artifactId>
+      <version>3.7.1</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>org.eclipse.text</artifactId>
+          <groupId>org.eclipse.text</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>org.eclipse.core.filesystem</artifactId>
+          <groupId>org.eclipse.core</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>org.eclipse.equinox.registry</artifactId>
+          <groupId>org.eclipse.equinox</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>org.eclipse.equinox.app</artifactId>
+          <groupId>org.eclipse.equinox</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>org.eclipse.core.expressions</artifactId>
+          <groupId>org.eclipse.core</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+</project>
+
