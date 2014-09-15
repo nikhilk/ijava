@@ -1,9 +1,9 @@
 #!/bin/sh
 
 mkdir -p ../build
-mvn clean package
+mvn clean package -DskipTests -q
 
-cat ijava.sh app/bin/ijava-app-0.1.jar > ../build/ijava
+cat ijava.sh kernel/target/ijava-kernel-0.1.jar > ../build/ijava
 chmod +x ../build/ijava
 ls -l ../build/ijava
 

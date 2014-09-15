@@ -16,12 +16,19 @@
   </properties>
 
   <build>
-    <directory>${project.basedir}/../../build/shell</directory>
+    <directory>${project.basedir}/target</directory>
     <sourceDirectory>${project.basedir}/src</sourceDirectory>
     <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.0</version>
+      <scope>test</scope>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>org.eclipse.jdt</groupId>
       <artifactId>org.eclipse.jdt.core</artifactId>
