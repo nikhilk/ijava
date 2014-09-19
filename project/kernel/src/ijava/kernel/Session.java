@@ -16,11 +16,11 @@ public final class Session {
   private final SessionOptions _options;
 
   private Context _context;
-  private Socket _heartbeatSocket;
-  private Socket _controlSocket;
-  private Socket _shellSocket;
-  private Socket _stdinSocket;
-  private Socket _ioPubSocket;
+  private Channel _heartbeatChannel;
+  private Channel _controlChannel;
+  private Channel _shellChannel;
+  private Channel _stdinChannel;
+  private Channel _ioPubChannel;
 
   /**
    * Creates and initializes an instance of a Session object.
@@ -30,13 +30,13 @@ public final class Session {
     _options = options;
   }
 
-  private Socket createSocket(int type, int port) {
+  private Channel createChannel(int type, int port) {
     Socket socket = _context.socket(type);
 
     String address = String.format("%s://%s:%d", _options.getTransport(), _options.getIP(), port);
     socket.bind(address);
 
-    return socket;
+    return new Channel(socket);
   }
 
   /**
@@ -45,24 +45,24 @@ public final class Session {
   public void start() {
     _context = ZMQ.context(Session.ZMQ_IO_THREADS);
 
-    _heartbeatSocket = createSocket(ZMQ.REP, _options.getHeartbeatPort());
-    _controlSocket = createSocket(ZMQ.ROUTER, _options.getControlPort());
-    _shellSocket = createSocket(ZMQ.ROUTER, _options.getShellPort());
-    _stdinSocket = createSocket(ZMQ.ROUTER, _options.getStdinPort());
-    _ioPubSocket = createSocket(ZMQ.PUB, _options.getIOPubPort());
+    _heartbeatChannel = createChannel(ZMQ.REP, _options.getHeartbeatPort());
+    _controlChannel = createChannel(ZMQ.ROUTER, _options.getControlPort());
+    _shellChannel = createChannel(ZMQ.ROUTER, _options.getShellPort());
+    _stdinChannel = createChannel(ZMQ.ROUTER, _options.getStdinPort());
+    _ioPubChannel = createChannel(ZMQ.PUB, _options.getIOPubPort());
 
-    ZMQ.proxy(_heartbeatSocket, _heartbeatSocket, null);
+    ZMQ.proxy(_heartbeatChannel.getSocket(), _heartbeatChannel.getSocket(), null);
   }
 
   /**
    * Stops the session.
    */
   public void stop() {
-    _ioPubSocket.close();
-    _stdinSocket.close();
-    _shellSocket.close();
-    _controlSocket.close();
-    _heartbeatSocket.close();
+    _ioPubChannel.close();
+    _stdinChannel.close();
+    _shellChannel.close();
+    _controlChannel.close();
+    _heartbeatChannel.close();
 
     _context.term();
   }
