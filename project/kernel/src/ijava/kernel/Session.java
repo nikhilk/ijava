@@ -5,11 +5,12 @@ package ijava.kernel;
 
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
+import ijava.kernel.protocol.*;
 
 /**
  * Represents a running Kernel instance.
  */
-public final class Session {
+public final class Session implements MessageServices {
 
   private final static int ZMQ_IO_THREADS = 1;
 
@@ -30,13 +31,13 @@ public final class Session {
     _options = options;
   }
 
-  private Channel createChannel(int type, int port) {
-    Socket socket = _context.socket(type);
+  private Channel createChannel(MessageChannel channelType, int socketType, int port) {
+    Socket socket = _context.socket(socketType);
 
     String address = String.format("%s://%s:%d", _options.getTransport(), _options.getIP(), port);
     socket.bind(address);
 
-    return new Channel(socket);
+    return new Channel(channelType, socket);
   }
 
   /**
@@ -45,13 +46,15 @@ public final class Session {
   public void start() {
     _context = ZMQ.context(Session.ZMQ_IO_THREADS);
 
-    _heartbeatChannel = createChannel(ZMQ.REP, _options.getHeartbeatPort());
-    _controlChannel = createChannel(ZMQ.ROUTER, _options.getControlPort());
-    _shellChannel = createChannel(ZMQ.ROUTER, _options.getShellPort());
-    _stdinChannel = createChannel(ZMQ.ROUTER, _options.getStdinPort());
-    _ioPubChannel = createChannel(ZMQ.PUB, _options.getIOPubPort());
+    _heartbeatChannel = createChannel(MessageChannel.Heartbeat, ZMQ.REP,
+                                      _options.getHeartbeatPort());
+    _controlChannel = createChannel(MessageChannel.Requests, ZMQ.ROUTER,
+                                    _options.getControlPort());
+    _shellChannel = createChannel(MessageChannel.Requests, ZMQ.ROUTER, _options.getShellPort());
+    _stdinChannel = createChannel(MessageChannel.Input, ZMQ.ROUTER, _options.getStdinPort());
+    _ioPubChannel = createChannel(MessageChannel.Output, ZMQ.PUB, _options.getIOPubPort());
 
-    ZMQ.proxy(_heartbeatChannel.getSocket(), _heartbeatChannel.getSocket(), null);
+    _heartbeatChannel.echoMessages();
   }
 
   /**
@@ -65,5 +68,13 @@ public final class Session {
     _heartbeatChannel.close();
 
     _context.term();
+  }
+
+  /**
+   * {@link MessageServices}
+   */
+  @Override
+  public void sendMessage(Message message, MessageChannel target) {
+    // TODO: Implement this
   }
 }
