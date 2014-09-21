@@ -14,9 +14,14 @@ public enum MessageChannel {
   Heartbeat,
 
   /**
-   * Represents the channels associated with the shell and control sockets.
+   * Represents the channel associated with the control socket.
    */
-  Requests,
+  Control,
+
+  /**
+   * Represents the channel associated with the shell socket.
+   */
+  Shell,
 
   /**
    * Represents the channel associated with the stdin socket.

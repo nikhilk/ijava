@@ -34,11 +34,11 @@ final class Channel {
   }
 
   /**
-   * Sets up this channel as an echo channel, that simply writes whatever it reads
-   * from its socket to the same socket.
+   * Gets the underlying socket.
+   * @return the associated socket.
    */
-  public void echoMessages() {
-    ZMQ.proxy(_socket, _socket, null);
+  public Socket getSocket() {
+    return _socket;
   }
 
   /**

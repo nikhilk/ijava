@@ -28,6 +28,8 @@ public final class Application {
         Application app = new Application(options);
 
         app.start();
+        app.stop();
+
         return;
       }
     }

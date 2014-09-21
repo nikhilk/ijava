@@ -150,7 +150,7 @@ public abstract class Message {
    * Gets the header of the message.
    * @return the header object.
    */
-  protected JSONObject getHeader() {
+  public JSONObject getHeader() {
     return _header;
   }
 
@@ -188,7 +188,7 @@ public abstract class Message {
 
   @SuppressWarnings("unchecked")
   private static JSONObject createHeader(String type) {
-    String id = "...";
+    String id = UUID.randomUUID().toString().replace("-", "");
     JSONObject header = new JSONObject();
 
     header.put("msg_id", id);
