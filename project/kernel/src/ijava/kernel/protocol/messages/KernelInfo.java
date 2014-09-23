@@ -6,24 +6,47 @@ package ijava.kernel.protocol.messages;
 import org.json.simple.*;
 import ijava.kernel.protocol.*;
 
+/**
+ * Represents messages to retrieve kernel metadata information.
+ */
 public final class KernelInfo {
 
+  /**
+   * Represents the kernel_info_request message to request kernel metadata.
+   */
   private KernelInfo() {
   }
 
   public static final class RequestMessage extends Message {
 
-    public RequestMessage(JSONObject header, JSONObject parentHeader, JSONObject metadata,
+    /**
+     * Creates an instance of a RequestMessage.
+     * @param identity the identity of the client.
+     * @param header the header of the message.
+     * @param parentHeader the header of the associated parent message.
+     * @param metadata any metadata associated with the message.
+     * @param content the content of the message.
+     */
+    public RequestMessage(String identity,
+                          JSONObject header, JSONObject parentHeader, JSONObject metadata,
                           JSONObject content) {
-      super(header, parentHeader, metadata, content);
+      super(identity, header, parentHeader, metadata, content);
     }
   }
 
+  /**
+   * Represents the kernel_info_reply message with metadata about the kernel.
+   */
   public static final class ResponseMessage extends Message {
 
+    /**
+     * Creates an instance of a ResponseMessage.
+     * @param identity the identity of the client.
+     * @param parentHeader the header of the associated parent message.
+     */
     @SuppressWarnings("unchecked")
-    public ResponseMessage(JSONObject parentHeader) {
-      super(Message.KernelInfoResponse, parentHeader);
+    public ResponseMessage(String identity, JSONObject parentHeader) {
+      super(identity, Message.KernelInfoResponse, parentHeader);
 
       JSONArray protocolVersion = new JSONArray();
       protocolVersion.add(new Integer(4));
@@ -40,11 +63,18 @@ public final class KernelInfo {
     }
   }
 
+  /**
+   * Handles requests for kernel information.
+   */
   public static final class Handler implements MessageHandler {
 
+    /**
+     * {@link MessageHandler}
+     */
     @Override
     public void handleMessage(Message message, MessageChannel source, MessageServices services) {
-      ResponseMessage responseMessage = new ResponseMessage(message.getHeader());
+      ResponseMessage responseMessage = new ResponseMessage(message.getIdentity(),
+                                                            message.getHeader());
       services.sendMessage(responseMessage, source);
     }
   }

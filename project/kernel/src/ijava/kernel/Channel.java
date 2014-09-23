@@ -3,7 +3,6 @@
 
 package ijava.kernel;
 
-import org.zeromq.*;
 import org.zeromq.ZMQ.*;
 import ijava.kernel.protocol.*;
 

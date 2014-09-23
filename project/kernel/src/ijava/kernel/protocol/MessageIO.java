@@ -26,7 +26,13 @@ public final class MessageIO {
    */
   public static Message readMessage(Socket socket) {
     try {
+      String identity = null;
       for (String id = socket.recvStr(); !id.equals(MessageIO.DELIMITER); id = socket.recvStr()) {
+        if (identity == null) {
+          identity = id;
+        }
+
+        // TODO: When are there multiple identities?
       }
 
       String hmac = socket.recvStr();
@@ -38,6 +44,7 @@ public final class MessageIO {
       // TODO: Verify HMAC
 
       System.out.println("-- Read --------------------------");
+      System.out.println(identity);
       System.out.println(headerJson);
       System.out.println(parentHeaderJson);
       System.out.println(metadataJson);
@@ -48,7 +55,7 @@ public final class MessageIO {
       JSONObject metadata = (JSONObject)MessageIO.Parser.parse(metadataJson);
       JSONObject content = (JSONObject)MessageIO.Parser.parse(contentJson);
 
-      return Message.createMessage(header, parentHeader, metadata, content);
+      return Message.createMessage(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
       // TODO: Logging
@@ -62,6 +69,7 @@ public final class MessageIO {
    * @param message the message to send.
    */
   public static void writeMessage(Socket socket, Message message) {
+    String identity = message.getIdentity();
     String headerJson = message.getHeader().toJSONString();
     String parentHeaderJson = message.getParentHeader().toJSONString();
     String metadataJson = message.getMetadata().toJSONString();
@@ -71,11 +79,15 @@ public final class MessageIO {
     String hmac = "";
 
     System.out.println("-- Write -------------------------");
+    System.out.println(identity);
     System.out.println(headerJson);
     System.out.println(parentHeaderJson);
     System.out.println(metadataJson);
     System.out.println(contentJson);
 
+    if (identity != null) {
+      socket.sendMore(identity);
+    }
     socket.sendMore(MessageIO.DELIMITER);
     socket.sendMore(hmac);
     socket.sendMore(headerJson);

@@ -49,20 +49,28 @@ public abstract class Message {
   public final static String Stream = "stream";
 
 
-  private final static Map<String, Class<? extends Message>> _messageTypes;
-  private final static Map<String, Class<? extends MessageHandler>> _messageHandlers;
+  private final static Map<String, Class<? extends Message>> MessageTypes;
+  private final static Map<String, Class<? extends MessageHandler>> MessageHandlers;
 
+  private final String _identity;
   private final JSONObject _header;
   private final JSONObject _parentHeader;
   private final JSONObject _metadata;
   private final JSONObject _content;
 
   static {
-    _messageTypes = new HashMap<String, Class<? extends Message>>();
-    Message._messageTypes.put(Message.KernelInfoRequest, KernelInfo.RequestMessage.class);
+    HashMap<String, Class<? extends Message>> messageTypes =
+        new HashMap<String, Class<? extends Message>>();
+    messageTypes.put(Message.KernelInfoRequest, KernelInfo.RequestMessage.class);
+    messageTypes.put(Message.ExecuteRequest, Execute.RequestMessage.class);
 
-    _messageHandlers = new HashMap<String, Class<? extends MessageHandler>>();
-    Message._messageHandlers.put(Message.KernelInfoRequest, KernelInfo.Handler.class);
+    HashMap<String, Class<? extends MessageHandler>> messageHandlers =
+        new HashMap<String, Class<? extends MessageHandler>>();
+    messageHandlers.put(Message.KernelInfoRequest, KernelInfo.Handler.class);
+    messageHandlers.put(Message.ExecuteRequest, Execute.Handler.class);
+
+    MessageTypes = messageTypes;
+    MessageHandlers = messageHandlers;
   }
 
   /**
@@ -70,19 +78,22 @@ public abstract class Message {
    * @param type the type of the message.
    * @param parentHeader the header of the associated parent message.
    */
-  protected Message(String type, JSONObject parentHeader) {
-    this(Message.createHeader(type), parentHeader, new JSONObject(), new JSONObject());
+  protected Message(String identity, String type, JSONObject parentHeader) {
+    this(identity, Message.createHeader(type), parentHeader, new JSONObject(), new JSONObject());
   }
 
   /**
    * Creates and initializes a message from its constituent parts.
+   * @param identity the client identity.
    * @param header the header of the message.
    * @param parentHeader the header of the associated parent message.
    * @param metadata any metadata associated with the message.
    * @param content the content of the message.
    */
-  protected Message(JSONObject header, JSONObject parentHeader, JSONObject metadata,
+  protected Message(String identity,
+                    JSONObject header, JSONObject parentHeader, JSONObject metadata,
                     JSONObject content) {
+    _identity = identity;
     _header = header;
     _parentHeader = parentHeader;
     _metadata = metadata;
@@ -91,27 +102,30 @@ public abstract class Message {
 
   /**
    * Creates a message from its constituent parts.
+   * @param identity the identity of the client.
    * @param header the header of the message.
    * @param parentHeader the header of the associated parent message.
    * @param metadata any metadata associated with the message.
    * @param content the content of the message.
    * @return a message object of appropriate type.
    */
-  public static Message createMessage(JSONObject header, JSONObject parentHeader,
+  public static Message createMessage(String identity,
+                                      JSONObject header, JSONObject parentHeader,
                                       JSONObject metadata,
                                       JSONObject content) {
     String type = (String)header.get("msg_type");
 
-    Class<? extends Message> messageClass = Message._messageTypes.get(type);
+    Class<? extends Message> messageClass = Message.MessageTypes.get(type);
     if (messageClass == null) {
       return null;
     }
 
     try {
       Constructor<? extends Message> messageCtor =
-          messageClass.getConstructor(JSONObject.class, JSONObject.class,
+          messageClass.getConstructor(String.class,
+                                      JSONObject.class, JSONObject.class,
                                       JSONObject.class, JSONObject.class);
-      return messageCtor.newInstance(header, parentHeader, metadata, content);
+      return messageCtor.newInstance(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
       // TODO: Logging
@@ -132,7 +146,7 @@ public abstract class Message {
    * @return the handler if one is registered.
    */
   public MessageHandler getHandler() {
-    Class<? extends MessageHandler> handlerClass = Message._messageHandlers.get(getType());
+    Class<? extends MessageHandler> handlerClass = Message.MessageHandlers.get(getType());
     if (handlerClass == null) {
       return null;
     }
@@ -160,6 +174,14 @@ public abstract class Message {
    */
   public String getId() {
     return (String)_header.get("msg_id");
+  }
+
+  /**
+   * Gets the identity of the client associated with the message.
+   * @return the identity string.
+   */
+  public String getIdentity() {
+    return _identity;
   }
 
   /**
