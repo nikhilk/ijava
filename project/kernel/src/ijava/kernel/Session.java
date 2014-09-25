@@ -10,7 +10,7 @@ import ijava.kernel.protocol.*;
 /**
  * Represents a running Kernel instance.
  */
-public final class Session implements Runnable, MessageServices {
+public final class Session implements MessageServices {
 
   private final static int ZMQ_IO_THREADS = 1;
 
@@ -23,7 +23,7 @@ public final class Session implements Runnable, MessageServices {
   private Channel _stdinChannel;
   private Channel _ioPubChannel;
 
-  private final Thread _thread;
+  private final Thread _shellThread;
 
   /**
    * Creates and initializes an instance of a Session object.
@@ -32,8 +32,8 @@ public final class Session implements Runnable, MessageServices {
   public Session(SessionOptions options) {
     _options = options;
 
-    _thread = new Thread(this);
-    _thread.setName("Kernel Session Thread");
+    _shellThread = new Thread(new ShellChannelHandler());
+    _shellThread.setName("Kernel Shell Channel Handler");
   }
 
   private Channel createChannel(MessageChannel channelType, int socketType, int port) {
@@ -60,7 +60,7 @@ public final class Session implements Runnable, MessageServices {
     _ioPubChannel = createChannel(MessageChannel.Output, ZMQ.PUB, _options.getIOPubPort());
 
     // Start the session thread, which will start reading and processing messages.
-    _thread.start();
+    _shellThread.start();
 
     // This runs the heart beat socket listening/echo'ing right on this thread.
     try {
@@ -76,7 +76,7 @@ public final class Session implements Runnable, MessageServices {
    * Stops the session.
    */
   public void stop() {
-    _thread.interrupt();
+    _shellThread.interrupt();
 
     _ioPubChannel.close();
     _stdinChannel.close();
@@ -93,7 +93,6 @@ public final class Session implements Runnable, MessageServices {
       return;
     }
 
-    System.out.println("[" + channel.getChannelType() + "]: " + message.getType());
     MessageHandler handler = message.getHandler();
     if (handler == null) {
       // TODO: Logging
@@ -101,37 +100,6 @@ public final class Session implements Runnable, MessageServices {
     }
 
     handler.handleMessage(message, channel.getChannelType(), this);
-  }
-
-  /**
-   * {@link Runnable}
-   */
-  @Override
-  public void run() {
-    // Setup a poller, that will poll for messages on multiple sockets, and
-    // indicate which one has incoming data that should be processed.
-
-    Poller poller = new ZMQ.Poller(2);
-    poller.register(_controlChannel.getSocket(), Poller.POLLIN);
-    poller.register(_shellChannel.getSocket(), Poller.POLLIN);
-
-    while (!Thread.currentThread().isInterrupted()) {
-      try {
-        // Poll indefinitely, until one of the channels has something to process.
-        poller.poll();
-
-        if (poller.pollin(0)) {
-          processChannel(_controlChannel);
-        }
-
-        if (poller.pollin(1)) {
-          processChannel(_shellChannel);
-        }
-      }
-      catch (Exception e) {
-        // TODO: Logging
-      }
-    }
   }
 
   /**
@@ -159,6 +127,25 @@ public final class Session implements Runnable, MessageServices {
 
     if (channel != null) {
       channel.sendMessage(message);
+    }
+  }
+
+
+  private final class ShellChannelHandler implements Runnable {
+
+    /**
+     * {@link Runnable}
+     */
+    @Override
+    public void run() {
+      while (!Thread.currentThread().isInterrupted()) {
+        try {
+          processChannel(_shellChannel);
+        }
+        catch (Exception e) {
+          // TODO: Logging
+        }
+      }
     }
   }
 }
