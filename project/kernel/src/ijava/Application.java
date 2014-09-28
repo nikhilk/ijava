@@ -4,7 +4,6 @@
 package ijava;
 
 import ijava.kernel.*;
-import sun.misc.*;
 
 /**
  * Represents the entry point of the IJava kernel.
@@ -27,9 +26,8 @@ public final class Application {
       if (options != null) {
         Application app = new Application(options);
 
+        // Start kicks off the session, and doesn't return unless there is an exception.
         app.start();
-        app.stop();
-
         return;
       }
     }
@@ -59,9 +57,7 @@ public final class Application {
    * Starts the application.
    */
   private void start() {
-    InterruptHandler intHandler = new InterruptHandler();
-    intHandler.register();
-
+    new ShutdownHandler().installHook();
     _session.start();
   }
 
@@ -75,17 +71,28 @@ public final class Application {
 
 
   /**
-   * Handles INT interrupts.
+   * Implements shutdown logic.
    */
-  private final class InterruptHandler implements SignalHandler {
+  private final class ShutdownHandler implements Runnable {
 
-    @Override
-    public void handle(Signal sig) {
-      stop();
+    /**
+     * Installs this instance as the shutdown hook.
+     */
+    public void installHook() {
+      Runtime.getRuntime().addShutdownHook(new Thread(this));
     }
 
-    public void register() {
-      Signal.handle(new Signal("INT"), this);
+    /**
+     * {@link} Runnable
+     */
+    @Override
+    public void run() {
+      Thread.currentThread().setName("Shutdown Handler");
+      try {
+        _session.stop();
+      }
+      catch (Exception e) {
+      }
     }
   }
 }

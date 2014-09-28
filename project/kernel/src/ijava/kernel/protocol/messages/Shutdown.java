@@ -1,4 +1,4 @@
-// KernalInfo.java
+// Shutdown.java
 //
 
 package ijava.kernel.protocol.messages;
@@ -7,15 +7,15 @@ import org.json.simple.*;
 import ijava.kernel.protocol.*;
 
 /**
- * Represents functionality around kernel information requests.
+ * Represents functionality around shutdown requests.
  */
-public final class KernelInfo {
+public final class Shutdown {
 
-  private KernelInfo() {
+  private Shutdown() {
   }
 
   /**
-   * Represents the kernel_info_request message to request kernel metadata.
+   * Represents the shutdown_request message to shutdown a kernel.
    */
   public static final class RequestMessage extends Message {
 
@@ -32,10 +32,14 @@ public final class KernelInfo {
                           JSONObject content) {
       super(identity, header, parentHeader, metadata, content);
     }
+
+    public Boolean restart() {
+      return (Boolean)getContent().get("restart");
+    }
   }
 
   /**
-   * Represents the kernel_info_reply message with metadata about the kernel.
+   * Represents the shutdown_reply message.
    */
   public static final class ResponseMessage extends Message {
 
@@ -43,28 +47,18 @@ public final class KernelInfo {
      * Creates an instance of a ResponseMessage.
      * @param identity the identity of the client.
      * @param parentHeader the header of the associated parent message.
+     * @param restart whether the kernel is shutting down for restarting.
      */
     @SuppressWarnings("unchecked")
-    public ResponseMessage(String identity, JSONObject parentHeader) {
-      super(identity, Message.KernelInfoResponse, parentHeader);
+    public ResponseMessage(String identity, JSONObject parentHeader, Boolean restart) {
+      super(identity, Message.ShutdownResponse, parentHeader);
 
-      JSONArray protocolVersion = new JSONArray();
-      protocolVersion.add(new Integer(4));
-      protocolVersion.add(new Integer(1));
-
-      JSONArray languageVersion = new JSONArray();
-      languageVersion.add(new Integer(1));
-      languageVersion.add(new Integer(7));
-
-      JSONObject content = getContent();
-      content.put("language", "java");
-      content.put("language_version", languageVersion);
-      content.put("protocol_version", protocolVersion);
+      getContent().put("restart", restart);
     }
   }
 
   /**
-   * Handles requests for kernel information.
+   * Handles requests for kernel shutdown.
    */
   public static final class Handler implements MessageHandler {
 
@@ -73,9 +67,12 @@ public final class KernelInfo {
      */
     @Override
     public void handleMessage(Message message, MessageChannel source, MessageServices services) {
+      Boolean restart = ((RequestMessage)message).restart();
       ResponseMessage responseMessage = new ResponseMessage(message.getIdentity(),
-                                                            message.getHeader());
+                                                            message.getHeader(),
+                                                            restart);
       services.sendMessage(responseMessage, source);
+      services.endSession();
     }
   }
 }

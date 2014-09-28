@@ -43,18 +43,12 @@ public final class MessageIO {
 
       // TODO: Verify HMAC
 
-      System.out.println("-- Read --------------------------");
-      System.out.println(identity);
-      System.out.println(headerJson);
-      System.out.println(parentHeaderJson);
-      System.out.println(metadataJson);
-      System.out.println(contentJson);
-
       JSONObject header = (JSONObject)MessageIO.Parser.parse(headerJson);
       JSONObject parentHeader = (JSONObject)MessageIO.Parser.parse(parentHeaderJson);
       JSONObject metadata = (JSONObject)MessageIO.Parser.parse(metadataJson);
       JSONObject content = (JSONObject)MessageIO.Parser.parse(contentJson);
 
+      System.out.println("Read message of type " + header.get("msg_type"));
       return Message.createMessage(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
@@ -78,16 +72,10 @@ public final class MessageIO {
     // TODO: Compute HMAC
     String hmac = "";
 
-    System.out.println("-- Write -------------------------");
-    System.out.println(identity);
-    System.out.println(headerJson);
-    System.out.println(parentHeaderJson);
-    System.out.println(metadataJson);
-    System.out.println(contentJson);
-
     if (identity != null) {
       socket.sendMore(identity);
     }
+
     socket.sendMore(MessageIO.DELIMITER);
     socket.sendMore(hmac);
     socket.sendMore(headerJson);

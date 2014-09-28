@@ -33,14 +33,6 @@ final class Channel {
   }
 
   /**
-   * Gets the underlying socket.
-   * @return the associated socket.
-   */
-  public Socket getSocket() {
-    return _socket;
-  }
-
-  /**
    * Closes the channel and the underlying socket.
    */
   public void close() {

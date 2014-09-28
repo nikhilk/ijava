@@ -17,13 +17,15 @@ public final class Session implements MessageServices {
   private final SessionOptions _options;
 
   private Context _context;
-  private Channel _heartbeatChannel;
   private Channel _controlChannel;
   private Channel _shellChannel;
   private Channel _stdinChannel;
   private Channel _ioPubChannel;
+  private Socket _heartbeatSocket;
 
-  private final Thread _shellThread;
+  private Thread _shellThread;
+  private Thread _controlThread;
+  private Thread _heartbeatThread;
 
   /**
    * Creates and initializes an instance of a Session object.
@@ -31,18 +33,20 @@ public final class Session implements MessageServices {
    */
   public Session(SessionOptions options) {
     _options = options;
-
-    _shellThread = new Thread(new ShellChannelHandler());
-    _shellThread.setName("Kernel Shell Channel Handler");
   }
 
   private Channel createChannel(MessageChannel channelType, int socketType, int port) {
+    Socket socket = createSocket(socketType, port);
+    return new Channel(channelType, createSocket(socketType, port));
+  }
+
+  private Socket createSocket(int socketType, int port) {
     Socket socket = _context.socket(socketType);
 
     String address = String.format("%s://%s:%d", _options.getTransport(), _options.getIP(), port);
     socket.bind(address);
 
-    return new Channel(channelType, socket);
+    return socket;
   }
 
   /**
@@ -51,21 +55,35 @@ public final class Session implements MessageServices {
   public void start() {
     _context = ZMQ.context(Session.ZMQ_IO_THREADS);
 
-    _heartbeatChannel = createChannel(MessageChannel.Heartbeat, ZMQ.REP,
-                                      _options.getHeartbeatPort());
     _controlChannel = createChannel(MessageChannel.Control, ZMQ.ROUTER,
                                     _options.getControlPort());
     _shellChannel = createChannel(MessageChannel.Shell, ZMQ.ROUTER, _options.getShellPort());
     _stdinChannel = createChannel(MessageChannel.Input, ZMQ.ROUTER, _options.getStdinPort());
     _ioPubChannel = createChannel(MessageChannel.Output, ZMQ.PUB, _options.getIOPubPort());
 
-    // Start the session thread, which will start reading and processing messages.
+    _heartbeatSocket = createSocket(ZMQ.REP, _options.getHeartbeatPort());
+
+    // Start the channel threads, which will start reading and processing messages.
+    _shellThread = new Thread(new ChannelHandler(_shellChannel));
+    _shellThread.setName("Shell Thread");
     _shellThread.start();
 
-    // This runs the heart beat socket listening/echo'ing right on this thread.
+    _controlThread = new Thread(new ChannelHandler(_controlChannel));
+    _shellThread.setName("Control Thread");
+    _controlThread.start();
+
+    // Start the heartbeat thread, which will simply echo what it receives.
+    _heartbeatThread = new Thread(new Heartbeat());
+    _heartbeatThread.setName("Heartbeat");
+    _heartbeatThread.start();
+
     try {
+      // This runs the heart beat socket listening/echo'ing right on this thread.
+      // The process should exit when this is the only thread left, so mark it as a daemon.
+
       Thread.currentThread().setName("Main Thread");
-      ZMQ.proxy(_heartbeatChannel.getSocket(), _heartbeatChannel.getSocket(), null);
+      Thread.currentThread().setDaemon(true);
+      _heartbeatThread.join();
     }
     catch (Exception e) {
       // TODO: Logging
@@ -76,30 +94,37 @@ public final class Session implements MessageServices {
    * Stops the session.
    */
   public void stop() {
-    _shellThread.interrupt();
-
     _ioPubChannel.close();
     _stdinChannel.close();
     _shellChannel.close();
     _controlChannel.close();
-    _heartbeatChannel.close();
+    _heartbeatSocket.close();
 
+    if (_shellThread != null) {
+      _shellThread.interrupt();
+      _shellThread = null;
+    }
+
+    if (_controlThread != null) {
+      _controlThread.interrupt();
+      _controlThread = null;
+    }
+
+    if (_heartbeatThread != null) {
+      _heartbeatThread.interrupt();
+      _heartbeatThread = null;
+    }
+
+    _context.close();
     _context.term();
   }
 
-  private void processChannel(Channel channel) {
-    Message message = channel.receiveMessage();
-    if (message == null) {
-      return;
-    }
-
-    MessageHandler handler = message.getHandler();
-    if (handler == null) {
-      // TODO: Logging
-      return;
-    }
-
-    handler.handleMessage(message, channel.getChannelType(), this);
+  /**
+   * {@link MessageServices}
+   */
+  @Override
+  public void endSession() {
+    System.exit(0);
   }
 
   /**
@@ -131,7 +156,17 @@ public final class Session implements MessageServices {
   }
 
 
-  private final class ShellChannelHandler implements Runnable {
+  private final class ChannelHandler implements Runnable {
+
+    private final Channel _channel;
+
+    /**
+     * Initializes a ChannelHandler with the channel it should process.
+     * @param channel the channel to process.
+     */
+    public ChannelHandler(Channel channel) {
+      _channel = channel;
+    }
 
     /**
      * {@link Runnable}
@@ -139,13 +174,37 @@ public final class Session implements MessageServices {
     @Override
     public void run() {
       while (!Thread.currentThread().isInterrupted()) {
+        Message message = _channel.receiveMessage();
+        if (message == null) {
+          return;
+        }
+
+        MessageHandler handler = message.getHandler();
+        if (handler == null) {
+          System.out.println("Unhandled message: " + message.getType());
+          // TODO: Logging
+          return;
+        }
+
         try {
-          processChannel(_shellChannel);
+          handler.handleMessage(message, _channel.getChannelType(), Session.this);
         }
         catch (Exception e) {
           // TODO: Logging
         }
       }
+    }
+  }
+
+
+  private final class Heartbeat implements Runnable {
+
+    /**
+     * {@link Runnable}
+     */
+    @Override
+    public void run() {
+      ZMQ.proxy(_heartbeatSocket, _heartbeatSocket, null);
     }
   }
 }

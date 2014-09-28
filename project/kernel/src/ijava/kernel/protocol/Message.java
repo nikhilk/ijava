@@ -24,6 +24,16 @@ public abstract class Message {
   public final static String KernelInfoResponse = "kernel_info_reply";
 
   /**
+   * A request to shutdown the kernel.
+   */
+  public final static String ShutdownRequest = "shutdown_request";
+
+  /**
+   * A response with results from a kernel shutdown.
+   */
+  public final static String ShutdownResponse = "shutdown_reply";
+
+  /**
    * A request to execute code within the kernel.
    */
   public final static String ExecuteRequest = "execute_request";
@@ -62,11 +72,13 @@ public abstract class Message {
     HashMap<String, Class<? extends Message>> messageTypes =
         new HashMap<String, Class<? extends Message>>();
     messageTypes.put(Message.KernelInfoRequest, KernelInfo.RequestMessage.class);
+    messageTypes.put(Message.ShutdownRequest, Shutdown.RequestMessage.class);
     messageTypes.put(Message.ExecuteRequest, Execute.RequestMessage.class);
 
     HashMap<String, Class<? extends MessageHandler>> messageHandlers =
         new HashMap<String, Class<? extends MessageHandler>>();
     messageHandlers.put(Message.KernelInfoRequest, KernelInfo.Handler.class);
+    messageHandlers.put(Message.ShutdownRequest, Shutdown.Handler.class);
     messageHandlers.put(Message.ExecuteRequest, Execute.Handler.class);
 
     MessageTypes = messageTypes;
@@ -117,6 +129,8 @@ public abstract class Message {
 
     Class<? extends Message> messageClass = Message.MessageTypes.get(type);
     if (messageClass == null) {
+      System.out.println("Unknown message type: " + type);
+      // TODO: Logging
       return null;
     }
 
@@ -128,6 +142,7 @@ public abstract class Message {
       return messageCtor.newInstance(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
+      System.out.println("Unhandled message type: " + type);
       // TODO: Logging
       return null;
     }

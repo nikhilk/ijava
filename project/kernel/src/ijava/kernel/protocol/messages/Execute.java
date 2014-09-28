@@ -7,7 +7,7 @@ import org.json.simple.*;
 import ijava.kernel.protocol.*;
 
 /**
- * Represents messages to execute code in the kernel.
+ * Represents functionality around kernel information requests.
  */
 public final class Execute {
 
