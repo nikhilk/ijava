@@ -3,6 +3,7 @@
 
 package ijava.kernel;
 
+import java.util.*;
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
 import ijava.kernel.protocol.*;
@@ -16,17 +17,14 @@ public final class Session implements MessageServices {
 
   private final SessionOptions _options;
 
-  private Context _context;
-  private Socket _heartbeatSocket;
+  private final Context _context;
+  private final Socket _controlSocket;
+  private final Socket _shellSocket;
+  private final Socket _ioPubSocket;
 
-  private Channel _controlChannel;
-  private Channel _shellChannel;
-  private Channel _stdinChannel;
-  private Channel _ioPubChannel;
+  private final Queue<Message> _publishQueue;
 
-  private Thread _shellThread;
-  private Thread _controlThread;
-  private Thread _heartbeatThread;
+  private Boolean _stopped;
 
   /**
    * Creates and initializes an instance of a Session object.
@@ -34,14 +32,18 @@ public final class Session implements MessageServices {
    */
   public Session(SessionOptions options) {
     _options = options;
+    _context = ZMQ.context(Session.ZMQ_IO_THREADS);
+
+    _controlSocket = createSocket(ZMQ.ROUTER, options.getControlPort());
+    _shellSocket = createSocket(ZMQ.ROUTER, options.getShellPort());
+    _ioPubSocket = createSocket(ZMQ.PUB, options.getIOPubPort());
+
+    _publishQueue = new LinkedList<Message>();
+
+    _stopped = true;
   }
 
-  private Channel createChannel(MessageChannel channelType, int socketType, int port) {
-    Socket socket = createSocket(socketType, port);
-    return new Channel(channelType, socket);
-  }
-
-  private Socket createSocket(int socketType, int port) {
+  Socket createSocket(int socketType, int port) {
     Socket socket = _context.socket(socketType);
 
     String address = String.format("%s://%s:%d", _options.getTransport(), _options.getIP(), port);
@@ -50,73 +52,92 @@ public final class Session implements MessageServices {
     return socket;
   }
 
-  /**
-   * Starts the session.
-   */
-  public void start() {
-    _context = ZMQ.context(Session.ZMQ_IO_THREADS);
-    _heartbeatSocket = createSocket(ZMQ.REP, _options.getHeartbeatPort());
+  private void processIncomingMessage(Socket socket, MessageChannel channel) {
+    Message message = MessageIO.readMessage(socket);
+    if (message == null) {
+      return;
+    }
 
-    _controlChannel = createChannel(MessageChannel.Control, ZMQ.ROUTER,
-                                    _options.getControlPort());
-    _shellChannel = createChannel(MessageChannel.Shell, ZMQ.ROUTER, _options.getShellPort());
-    _stdinChannel = createChannel(MessageChannel.Input, ZMQ.ROUTER, _options.getStdinPort());
-    _ioPubChannel = createChannel(MessageChannel.Output, ZMQ.PUB, _options.getIOPubPort());
-
-    // Start the channel threads, which will start reading and processing messages.
-    _controlThread = new Thread(new ChannelHandler(_controlChannel));
-    _controlThread.setName("Control Thread");
-    _controlThread.setDaemon(true);
-    _controlThread.start();
-
-    _shellThread = new Thread(new ChannelHandler(_shellChannel));
-    _shellThread.setName("Shell Thread");
-    _shellThread.setDaemon(true);
-    _shellThread.start();
-
-    // Start the heartbeat thread, which will simply echo what it receives.
-    _heartbeatThread = new Thread(new Heartbeat());
-    _heartbeatThread.setName("Heartbeat");
-    _heartbeatThread.setDaemon(true);
-    _heartbeatThread.start();
+    MessageHandler handler = message.getHandler();
+    if (handler == null) {
+      System.out.println("Unhandled message: " + message.getType());
+      // TODO: Logging
+      return;
+    }
 
     try {
-      // This runs the heart beat socket listening/echo'ing right on this thread.
-      // The process should exit when this is the only thread left, so mark it as a daemon.
-
-      Thread.currentThread().setName("Main Thread");
-      Thread.currentThread().setDaemon(true);
-      _heartbeatThread.join();
+      message.associateChannel(channel);
+      handler.handleMessage(message, Session.this);
     }
     catch (Exception e) {
       // TODO: Logging
     }
   }
 
+  private void processOutgoingMessage(Message message) {
+    Socket socket = null;
+    switch (message.getChannel()) {
+      case Control:
+        socket = _controlSocket;
+        break;
+      case Shell:
+        socket = _shellSocket;
+        break;
+      case Output:
+        socket = _ioPubSocket;
+        break;
+      default:
+        socket = null;
+        break;
+    }
+
+    if (socket != null) {
+      MessageIO.writeMessage(socket, message);
+    }
+  }
+
+  /**
+   * Starts the session.
+   */
+  public void start() {
+    _stopped = false;
+
+    SessionHeartbeat.start(this, _options);
+
+    ZMQ.Poller poller = new ZMQ.Poller(2);
+    poller.register(_controlSocket, ZMQ.Poller.POLLIN);
+    poller.register(_shellSocket, ZMQ.Poller.POLLIN);
+
+    while (!_stopped) {
+      poller.poll(1000);
+
+      if (poller.pollin(0)) {
+        processIncomingMessage(_controlSocket, MessageChannel.Control);
+      }
+      if (poller.pollin(1)) {
+        processIncomingMessage(_shellSocket, MessageChannel.Shell);
+      }
+
+      if (_publishQueue.size() != 0) {
+        synchronized(_publishQueue) {
+          while (_publishQueue.size() != 0) {
+            Message message = _publishQueue.poll();
+            processOutgoingMessage(message);
+          }
+        }
+      }
+    }
+
+    _controlSocket.close();
+    _shellSocket.close();
+    _ioPubSocket.close();
+  }
+
   /**
    * Stops the session.
    */
   public void stop() {
-    _ioPubChannel.close();
-    _stdinChannel.close();
-    _shellChannel.close();
-    _controlChannel.close();
-    _heartbeatSocket.close();
-
-    if (_shellThread != null) {
-      _shellThread.interrupt();
-      _shellThread = null;
-    }
-
-    if (_controlThread != null) {
-      _controlThread.interrupt();
-      _controlThread = null;
-    }
-
-    if (_heartbeatThread != null) {
-      _heartbeatThread.interrupt();
-      _heartbeatThread = null;
-    }
+    _stopped = true;
 
     _context.close();
     _context.term();
@@ -134,80 +155,9 @@ public final class Session implements MessageServices {
    * {@link MessageServices}
    */
   @Override
-  public void sendMessage(Message message, MessageChannel target) {
-    Channel channel = null;
-    switch (target) {
-      case Control:
-        channel = _controlChannel;
-        break;
-      case Shell:
-        channel = _shellChannel;
-        break;
-      case Input:
-        channel = _stdinChannel;
-        break;
-      case Output:
-        channel = _ioPubChannel;
-        break;
-      default:
-        break;
-    }
-
-    if (channel != null) {
-      channel.sendMessage(message);
-    }
-  }
-
-
-  private final class ChannelHandler implements Runnable {
-
-    private final Channel _channel;
-
-    /**
-     * Initializes a ChannelHandler with the channel it should process.
-     * @param channel the channel to process.
-     */
-    public ChannelHandler(Channel channel) {
-      _channel = channel;
-    }
-
-    /**
-     * {@link Runnable}
-     */
-    @Override
-    public void run() {
-      while (!Thread.currentThread().isInterrupted()) {
-        Message message = _channel.receiveMessage();
-        if (message == null) {
-          continue;
-        }
-
-        MessageHandler handler = message.getHandler();
-        if (handler == null) {
-          System.out.println("Unhandled message: " + message.getType());
-          // TODO: Logging
-          continue;
-        }
-
-        try {
-          handler.handleMessage(message, _channel.getChannelType(), Session.this);
-        }
-        catch (Exception e) {
-          // TODO: Logging
-        }
-      }
-    }
-  }
-
-
-  private final class Heartbeat implements Runnable {
-
-    /**
-     * {@link Runnable}
-     */
-    @Override
-    public void run() {
-      ZMQ.proxy(_heartbeatSocket, _heartbeatSocket, null);
+  public void sendMessage(Message message) {
+    synchronized(_publishQueue) {
+      _publishQueue.add(message);
     }
   }
 }

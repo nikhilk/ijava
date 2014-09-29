@@ -66,12 +66,12 @@ public final class Shutdown {
      * {@link MessageHandler}
      */
     @Override
-    public void handleMessage(Message message, MessageChannel source, MessageServices services) {
+    public void handleMessage(Message message, MessageServices services) {
       Boolean restart = ((RequestMessage)message).restart();
       ResponseMessage responseMessage = new ResponseMessage(message.getIdentity(),
                                                             message.getHeader(),
                                                             restart);
-      services.sendMessage(responseMessage, source);
+      services.sendMessage(responseMessage.associateChannel(message.getChannel()));
       services.endSession();
     }
   }

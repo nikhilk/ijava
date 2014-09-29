@@ -16,7 +16,6 @@ public interface MessageServices {
   /**
    * Sends a message to the specified message channel.
    * @param message the message to be sent.
-   * @param target the target channel.
    */
-  public void sendMessage(Message message, MessageChannel target);
+  public void sendMessage(Message message);
 }

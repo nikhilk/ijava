@@ -68,6 +68,8 @@ public abstract class Message {
   private final JSONObject _metadata;
   private final JSONObject _content;
 
+  private MessageChannel _channel;
+
   static {
     HashMap<String, Class<? extends Message>> messageTypes =
         new HashMap<String, Class<? extends Message>>();
@@ -113,6 +115,16 @@ public abstract class Message {
   }
 
   /**
+   * Associates the channel that this message was read from, or needs to be written to.
+   * @param channel the associated channel.
+   * @return the message with an associated channel.
+   */
+  public Message associateChannel(MessageChannel channel) {
+    _channel = channel;
+    return this;
+  }
+
+  /**
    * Creates a message from its constituent parts.
    * @param identity the identity of the client.
    * @param header the header of the message.
@@ -146,6 +158,14 @@ public abstract class Message {
       // TODO: Logging
       return null;
     }
+  }
+
+  /**
+   * Gets the channel associated with this message.
+   * @return the associated channel.
+   */
+  public MessageChannel getChannel() {
+    return _channel;
   }
 
   /**

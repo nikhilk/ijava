@@ -72,10 +72,10 @@ public final class KernelInfo {
      * {@link MessageHandler}
      */
     @Override
-    public void handleMessage(Message message, MessageChannel source, MessageServices services) {
+    public void handleMessage(Message message, MessageServices services) {
       ResponseMessage responseMessage = new ResponseMessage(message.getIdentity(),
                                                             message.getHeader());
-      services.sendMessage(responseMessage, source);
+      services.sendMessage(responseMessage.associateChannel(message.getChannel()));
     }
   }
 }

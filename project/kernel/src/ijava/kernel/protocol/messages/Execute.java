@@ -170,16 +170,16 @@ public final class Execute {
      * {@link MessageHandler}
      */
     @Override
-    public void handleMessage(Message message, MessageChannel source, MessageServices services) {
+    public void handleMessage(Message message, MessageServices services) {
       StatusMessage busyMessage = new StatusMessage(StatusMessage.BusyStatus);
-      services.sendMessage(busyMessage, MessageChannel.Output);
+      services.sendMessage(busyMessage.associateChannel(MessageChannel.Output));
 
       ResponseMessage responseMessage = new SuccessResponseMessage(message.getIdentity(),
                                                                    message.getHeader(), 1);
-      services.sendMessage(responseMessage, source);
+      services.sendMessage(responseMessage.associateChannel(message.getChannel()));
 
       StatusMessage idleMessage = new StatusMessage(StatusMessage.IdleStatus);
-      services.sendMessage(idleMessage, MessageChannel.Output);
+      services.sendMessage(idleMessage.associateChannel(MessageChannel.Output));
     }
   }
 }
