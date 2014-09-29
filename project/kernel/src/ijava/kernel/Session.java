@@ -17,11 +17,12 @@ public final class Session implements MessageServices {
   private final SessionOptions _options;
 
   private Context _context;
+  private Socket _heartbeatSocket;
+
   private Channel _controlChannel;
   private Channel _shellChannel;
   private Channel _stdinChannel;
   private Channel _ioPubChannel;
-  private Socket _heartbeatSocket;
 
   private Thread _shellThread;
   private Thread _controlThread;
@@ -37,7 +38,7 @@ public final class Session implements MessageServices {
 
   private Channel createChannel(MessageChannel channelType, int socketType, int port) {
     Socket socket = createSocket(socketType, port);
-    return new Channel(channelType, createSocket(socketType, port));
+    return new Channel(channelType, socket);
   }
 
   private Socket createSocket(int socketType, int port) {
@@ -54,6 +55,7 @@ public final class Session implements MessageServices {
    */
   public void start() {
     _context = ZMQ.context(Session.ZMQ_IO_THREADS);
+    _heartbeatSocket = createSocket(ZMQ.REP, _options.getHeartbeatPort());
 
     _controlChannel = createChannel(MessageChannel.Control, ZMQ.ROUTER,
                                     _options.getControlPort());
@@ -61,20 +63,21 @@ public final class Session implements MessageServices {
     _stdinChannel = createChannel(MessageChannel.Input, ZMQ.ROUTER, _options.getStdinPort());
     _ioPubChannel = createChannel(MessageChannel.Output, ZMQ.PUB, _options.getIOPubPort());
 
-    _heartbeatSocket = createSocket(ZMQ.REP, _options.getHeartbeatPort());
-
     // Start the channel threads, which will start reading and processing messages.
+    _controlThread = new Thread(new ChannelHandler(_controlChannel));
+    _controlThread.setName("Control Thread");
+    _controlThread.setDaemon(true);
+    _controlThread.start();
+
     _shellThread = new Thread(new ChannelHandler(_shellChannel));
     _shellThread.setName("Shell Thread");
+    _shellThread.setDaemon(true);
     _shellThread.start();
-
-    _controlThread = new Thread(new ChannelHandler(_controlChannel));
-    _shellThread.setName("Control Thread");
-    _controlThread.start();
 
     // Start the heartbeat thread, which will simply echo what it receives.
     _heartbeatThread = new Thread(new Heartbeat());
     _heartbeatThread.setName("Heartbeat");
+    _heartbeatThread.setDaemon(true);
     _heartbeatThread.start();
 
     try {
@@ -176,14 +179,14 @@ public final class Session implements MessageServices {
       while (!Thread.currentThread().isInterrupted()) {
         Message message = _channel.receiveMessage();
         if (message == null) {
-          return;
+          continue;
         }
 
         MessageHandler handler = message.getHandler();
         if (handler == null) {
           System.out.println("Unhandled message: " + message.getType());
           // TODO: Logging
-          return;
+          continue;
         }
 
         try {
