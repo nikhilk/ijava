@@ -3,6 +3,7 @@
 
 package ijava.kernel.protocol.messages;
 
+import java.util.*;
 import org.json.simple.*;
 import ijava.kernel.protocol.*;
 
@@ -38,7 +39,12 @@ public final class Execute {
     }
 
     public String getCode() {
-      return (String)getContent().get("code");
+      String code = (String)getContent().get("code");
+      if (code == null) {
+        return "";
+      }
+
+      return code;
     }
 
     public boolean silent() {
@@ -171,8 +177,24 @@ public final class Execute {
      */
     @Override
     public void handleMessage(Message message, MessageServices services) {
+      RequestMessage requestMessage = (RequestMessage)message;
+      String code = requestMessage.getCode();
+
+      if (code.isEmpty()) {
+        ResponseMessage responseMessage = new SuccessResponseMessage(message.getIdentity(),
+                                                                     message.getHeader(), 1);
+        services.sendMessage(responseMessage.associateChannel(message.getChannel()));
+
+        return;
+      }
+
       StatusMessage busyMessage = new StatusMessage(StatusMessage.BusyStatus);
       services.sendMessage(busyMessage.associateChannel(MessageChannel.Output));
+
+      HashMap<String, String> data = new HashMap<String, String>();
+      data.put("text/plain", requestMessage.getCode());
+      DataMessage dataMessage = new DataMessage(message.getIdentity(), message.getHeader(), data);
+      services.sendMessage(dataMessage.associateChannel(MessageChannel.Output));
 
       ResponseMessage responseMessage = new SuccessResponseMessage(message.getIdentity(),
                                                                    message.getHeader(), 1);
