@@ -22,9 +22,12 @@ public final class Session implements MessageServices {
   private final Socket _shellSocket;
   private final Socket _ioPubSocket;
 
+  private final SessionWorker _worker;
+
   private final Queue<Message> _publishQueue;
 
   private Boolean _stopped;
+
 
   /**
    * Creates and initializes an instance of a Session object.
@@ -37,6 +40,8 @@ public final class Session implements MessageServices {
     _controlSocket = createSocket(ZMQ.ROUTER, options.getControlPort());
     _shellSocket = createSocket(ZMQ.ROUTER, options.getShellPort());
     _ioPubSocket = createSocket(ZMQ.PUB, options.getIOPubPort());
+
+    _worker = new SessionWorker();
 
     _publishQueue = new LinkedList<Message>();
 
@@ -102,7 +107,15 @@ public final class Session implements MessageServices {
   public void start() {
     _stopped = false;
 
+    // Start the worker to process tasks submitted into the session.
+    _worker.start();
+
+    // Start a thread to implement the kernel heartbeat.
     SessionHeartbeat.start(this, _options);
+
+    // This thread will handle incoming socket messages and send out-going socket messages.
+    // In other words, all socket processing occurs in the thread that the sockets were
+    // created on.
 
     ZMQ.Poller poller = new ZMQ.Poller(2);
     poller.register(_controlSocket, ZMQ.Poller.POLLIN);
@@ -119,14 +132,16 @@ public final class Session implements MessageServices {
       }
 
       if (_publishQueue.size() != 0) {
-        synchronized(_publishQueue) {
-          while (_publishQueue.size() != 0) {
+        synchronized (_publishQueue) {
+          while (!_publishQueue.isEmpty()) {
             Message message = _publishQueue.poll();
             processOutgoingMessage(message);
           }
         }
       }
     }
+
+    _worker.stop();
 
     _controlSocket.close();
     _shellSocket.close();
@@ -155,8 +170,17 @@ public final class Session implements MessageServices {
    * {@link MessageServices}
    */
   @Override
+  public void processTask(String taskInput, Message message) {
+    SessionTask task = new SessionTask(taskInput, message);
+    _worker.addTask(task);
+  }
+
+  /**
+   * {@link MessageServices}
+   */
+  @Override
   public void sendMessage(Message message) {
-    synchronized(_publishQueue) {
+    synchronized (_publishQueue) {
       _publishQueue.add(message);
     }
   }
