@@ -181,6 +181,11 @@ public final class Execute {
       String code = requestMessage.getCode();
 
       if (code.isEmpty()) {
+        StreamMessage outputMessage = new StreamMessage(message.getIdentity(), message.getHeader(),
+                                                        StreamMessage.STDERR,
+                                                        "No code provided...");
+        services.sendMessage(outputMessage.associateChannel(MessageChannel.Output));
+
         ResponseMessage responseMessage = new SuccessResponseMessage(message.getIdentity(),
                                                                      message.getHeader(), 1);
         services.sendMessage(responseMessage.associateChannel(message.getChannel()));
@@ -190,6 +195,10 @@ public final class Execute {
 
       StatusMessage busyMessage = new StatusMessage(StatusMessage.BusyStatus);
       services.sendMessage(busyMessage.associateChannel(MessageChannel.Output));
+
+      StreamMessage outputMessage = new StreamMessage(message.getIdentity(), message.getHeader(),
+                                                      StreamMessage.STDOUT, "Executing...");
+      services.sendMessage(outputMessage.associateChannel(MessageChannel.Output));
 
       HashMap<String, String> data = new HashMap<String, String>();
       data.put("text/plain", requestMessage.getCode());
