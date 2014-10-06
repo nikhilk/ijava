@@ -3,8 +3,8 @@
 
 package ijava.kernel.protocol.messages;
 
-import java.util.*;
 import org.json.simple.*;
+
 import ijava.kernel.protocol.*;
 
 /**
@@ -178,39 +178,7 @@ public final class Execute {
     @Override
     public void handleMessage(Message message, MessageServices services) {
       RequestMessage requestMessage = (RequestMessage)message;
-      String code = requestMessage.getCode();
-
-      if (code.isEmpty()) {
-        StreamMessage outputMessage = new StreamMessage(message.getIdentity(), message.getHeader(),
-                                                        StreamMessage.STDERR,
-                                                        "No code provided...");
-        services.sendMessage(outputMessage.associateChannel(MessageChannel.Output));
-
-        ResponseMessage responseMessage = new SuccessResponseMessage(message.getIdentity(),
-                                                                     message.getHeader(), 1);
-        services.sendMessage(responseMessage.associateChannel(message.getChannel()));
-
-        return;
-      }
-
-      StatusMessage busyMessage = new StatusMessage(StatusMessage.BusyStatus);
-      services.sendMessage(busyMessage.associateChannel(MessageChannel.Output));
-
-      StreamMessage outputMessage = new StreamMessage(message.getIdentity(), message.getHeader(),
-                                                      StreamMessage.STDOUT, "Executing...");
-      services.sendMessage(outputMessage.associateChannel(MessageChannel.Output));
-
-      HashMap<String, String> data = new HashMap<String, String>();
-      data.put("text/plain", requestMessage.getCode());
-      DataMessage dataMessage = new DataMessage(message.getIdentity(), message.getHeader(), data);
-      services.sendMessage(dataMessage.associateChannel(MessageChannel.Output));
-
-      ResponseMessage responseMessage = new SuccessResponseMessage(message.getIdentity(),
-                                                                   message.getHeader(), 1);
-      services.sendMessage(responseMessage.associateChannel(message.getChannel()));
-
-      StatusMessage idleMessage = new StatusMessage(StatusMessage.IdleStatus);
-      services.sendMessage(idleMessage.associateChannel(MessageChannel.Output));
+      services.processTask(requestMessage.getCode(), requestMessage);
     }
   }
 }

@@ -11,30 +11,34 @@ import ijava.kernel.protocol.*;
  */
 public final class StatusMessage extends Message {
 
-  /**
-   * Indicates the kernel is starting.
-   */
-  public static final String StartingStatus = "starting";
-
-  /**
-   * Indicates the kernel is idle.
-   */
-  public static final String IdleStatus = "idle";
-
-  /**
-   * Indicates the kernel is busy executing code.
-   */
-  public static final String BusyStatus = "busy";
+  private static final String IdleStatus = "idle";
+  private static final String BusyStatus = "busy";
 
   /**
    * Creates an instance of a StatusMessage with the specified status.
    * @param status the status of the kernel.
    */
   @SuppressWarnings("unchecked")
-  public StatusMessage(String status) {
+  private StatusMessage(String status) {
     super(null, Message.Status, new JSONObject());
 
     JSONObject content = getContent();
     content.put("execution_state", status);
+  }
+
+  /**
+   * Creates a status message indicating busy status.
+   * @return the message that is ready be published to the client.
+   */
+  public static Message createBusyStatus() {
+    return new StatusMessage(StatusMessage.BusyStatus).associateChannel(MessageChannel.Output);
+  }
+
+  /**
+   * Creates a status message indicating idle status.
+   * @return the message that is ready be published to the client.
+   */
+  public static Message createIdleStatus() {
+    return new StatusMessage(StatusMessage.IdleStatus).associateChannel(MessageChannel.Output);
   }
 }

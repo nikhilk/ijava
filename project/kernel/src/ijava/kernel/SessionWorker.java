@@ -6,13 +6,15 @@ package ijava.kernel;
 import java.io.*;
 import java.util.*;
 
-import ijava.*;
+import ijava.kernel.protocol.*;
 import ijava.kernel.protocol.messages.*;
 
 /**
  * Processes tasks within the kernel session.
  */
 public final class SessionWorker implements Runnable {
+
+  private final static int SLEEP_INTERVAL = 500;
 
   private final Session _session;
 
@@ -42,8 +44,20 @@ public final class SessionWorker implements Runnable {
     }
   }
 
-  private void processTask(SessionTask task) {
-    Evaluator evaluator = _session.getEvaluator();
+  private int processTask(SessionTask task, int counter) {
+    Message parentMessage = task.getMessage();
+    String content = task.getContent();
+
+    if (content.isEmpty()) {
+      Execute.ResponseMessage responseMessage =
+          new Execute.SuccessResponseMessage(parentMessage.getIdentity(),
+                                             parentMessage.getHeader(),
+                                             counter);
+      _session.sendMessage(responseMessage.associateChannel(parentMessage.getChannel()));
+
+      // Nothing to execute, so return the counter without incrementing.
+      return counter;
+    }
 
     PrintStream stdout = System.out;
     PrintStream stderr = System.err;
@@ -53,18 +67,20 @@ public final class SessionWorker implements Runnable {
     PrintStream capturedStderr = new CapturedPrintStream(StreamMessage.STDERR, stderr);
     InputStream disabledStdin = new DisabledInputStream();
 
+    Exception error = null;
+    Object result = null;
     try {
       System.setOut(capturedStdout);
       System.setErr(capturedStderr);
       System.setIn(disabledStdin);
 
-      Object result = evaluator.evaluate(task.getContent());
-
-      // TODO: Implement this fully
+      result = _session.getEvaluator().evaluate(task.getContent());
     }
     catch (Exception e) {
+      error = e;
     }
     finally {
+      // Flush the captured streams. This will send out any pending stream data to the client.
       capturedStdout.flush();
       capturedStderr.flush();
 
@@ -72,6 +88,31 @@ public final class SessionWorker implements Runnable {
       System.setErr(stderr);
       System.setIn(stdin);
     }
+
+    // Send a message to display the result, if there was any.
+    Map<String, String> data = DataMessage.createData(result);
+    if (data != null) {
+      DataMessage dataMessage =
+          new DataMessage(parentMessage.getIdentity(), parentMessage.getHeader(), data);
+      _session.sendMessage(dataMessage.associateChannel(MessageChannel.Output));
+    }
+
+    // Send the success/failed result as a result of performing the task.
+    Execute.ResponseMessage responseMessage;
+    if (error == null) {
+      responseMessage =
+          new Execute.SuccessResponseMessage(parentMessage.getIdentity(), parentMessage.getHeader(),
+                                             counter);
+    }
+    else {
+      responseMessage =
+          new Execute.ErrorResponseMessage(parentMessage.getIdentity(), parentMessage.getHeader(),
+                                           counter,
+                                           error);
+    }
+    _session.sendMessage(responseMessage.associateChannel(parentMessage.getChannel()));
+
+    return counter + 1;
   }
 
   /**
@@ -90,16 +131,38 @@ public final class SessionWorker implements Runnable {
 
   @Override
   public void run() {
-    while (!Thread.currentThread().isInterrupted()) {
-      if (!_tasks.isEmpty()) {
-        SessionTask task = null;
+    boolean busy = false;
+    int counter = 1;
 
-        synchronized (_tasks) {
-          task = _tasks.poll();
+    while (!Thread.currentThread().isInterrupted()) {
+      SessionTask task = null;
+      synchronized (_tasks) {
+        task = _tasks.poll();
+      }
+
+      if (task != null) {
+        if (!busy) {
+          // Transitioning from idle to busy
+          busy = true;
+          _session.sendMessage(StatusMessage.createBusyStatus());
         }
 
-        if (task != null) {
-          processTask(task);
+        counter = processTask(task, counter);
+      }
+      else {
+        if (busy) {
+          // Transitioning from busy to idle
+          busy = false;
+          _session.sendMessage(StatusMessage.createIdleStatus());
+        }
+      }
+
+      // TODO: Synchronized access to check for empty?
+      if (_tasks.isEmpty()) {
+        try {
+          Thread.sleep(SessionWorker.SLEEP_INTERVAL);
+        }
+        catch (InterruptedException e) {
         }
       }
     }
@@ -147,8 +210,9 @@ public final class SessionWorker implements Runnable {
      */
     @Override
     public int read() throws IOException {
-      // TODO Auto-generated method stub
-      return 0;
+      String error = "Reading from System.in is not supported. " +
+          "All input should be specified at the time of execution.";
+      throw new UnsupportedOperationException(error);
     }
   }
 }

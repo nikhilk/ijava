@@ -6,9 +6,9 @@ package ijava.kernel;
 import java.util.*;
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
-
 import ijava.*;
 import ijava.kernel.protocol.*;
+import ijava.kernel.protocol.messages.*;
 
 /**
  * Represents a running Kernel instance.
@@ -16,6 +16,7 @@ import ijava.kernel.protocol.*;
 public final class Session implements MessageServices {
 
   private final static int ZMQ_IO_THREADS = 1;
+  private final static int POLL_INTERVAL = 500;
 
   private final SessionOptions _options;
   private final Evaluator _evaluator;
@@ -126,6 +127,9 @@ public final class Session implements MessageServices {
     // Start a thread to implement the kernel heartbeat.
     SessionHeartbeat.start(this, _options);
 
+    // Send an initial idle message
+    processOutgoingMessage(StatusMessage.createIdleStatus());
+
     // This thread will handle incoming socket messages and send out-going socket messages.
     // In other words, all socket processing occurs in the thread that the sockets were
     // created on.
@@ -135,7 +139,7 @@ public final class Session implements MessageServices {
     poller.register(_shellSocket, ZMQ.Poller.POLLIN);
 
     while (!_stopped) {
-      poller.poll(1000);
+      poller.poll(Session.POLL_INTERVAL);
 
       if (poller.pollin(0)) {
         processIncomingMessage(_controlSocket, MessageChannel.Control);

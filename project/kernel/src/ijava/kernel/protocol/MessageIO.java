@@ -48,7 +48,6 @@ public final class MessageIO {
       JSONObject metadata = (JSONObject)MessageIO.Parser.parse(metadataJson);
       JSONObject content = (JSONObject)MessageIO.Parser.parse(contentJson);
 
-      System.out.println("Read message of type " + header.get("msg_type"));
       return Message.createMessage(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {

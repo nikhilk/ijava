@@ -9,6 +9,6 @@ public final class InteractiveShell implements Evaluator {
 
   @Override
   public Object evaluate(String data) {
-    return null;
+    return data;
   }
 }

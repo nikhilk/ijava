@@ -5,6 +5,8 @@ package ijava.kernel.protocol.messages;
 
 import java.util.*;
 import org.json.simple.*;
+
+import ijava.data.*;
 import ijava.kernel.protocol.*;
 
 /**
@@ -29,5 +31,28 @@ public final class DataMessage extends Message {
 
     JSONObject content = getContent();
     content.put("data", dataObject);
+  }
+
+  /**
+   * Creates a map of mime/formatted data pairs from an instance value.
+   * @param value the value to be formatted.
+   * @return a map of different mime representations for the specified value.
+   */
+  public static Map<String, String> createData(Object value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value instanceof DisplayData) {
+      return ((DisplayData)value).toDisplayRepresentations();
+    }
+
+    // TODO: Interesting standard Java types to special case?
+
+    // Default to a textual representation produced via toString.
+    HashMap<String, String> representations = new HashMap<String, String>();
+    representations.put("text/plain", value.toString());
+
+    return representations;
   }
 }
