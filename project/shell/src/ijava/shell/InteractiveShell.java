@@ -3,6 +3,12 @@
 
 package ijava.shell;
 
-public final class InteractiveShell {
-}
+import ijava.*;
 
+public final class InteractiveShell implements Evaluator {
+
+  @Override
+  public Object evaluate(String data) {
+    return null;
+  }
+}

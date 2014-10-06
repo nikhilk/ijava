@@ -15,10 +15,10 @@ public interface MessageServices {
 
   /**
    * Processes the specified task within the session from input via the specified message.
-   * @param taskInput the text describing the task to be performed.
+   * @param content the text defining the task to be performed.
    * @param message the message resulting in the task.
    */
-  public void processTask(String taskInput, Message message);
+  public void processTask(String content, Message message);
 
   /**
    * Sends a message to the specified message channel.

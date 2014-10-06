@@ -6,6 +6,8 @@ package ijava.kernel;
 import java.util.*;
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
+
+import ijava.*;
 import ijava.kernel.protocol.*;
 
 /**
@@ -16,6 +18,7 @@ public final class Session implements MessageServices {
   private final static int ZMQ_IO_THREADS = 1;
 
   private final SessionOptions _options;
+  private final Evaluator _evaluator;
 
   private final Context _context;
   private final Socket _controlSocket;
@@ -32,20 +35,30 @@ public final class Session implements MessageServices {
   /**
    * Creates and initializes an instance of a Session object.
    * @param options the options describing the Session instance.
+   * @param runtimeFunction the function that processes tasks within the session.
    */
-  public Session(SessionOptions options) {
+  public Session(SessionOptions options, Evaluator evaluator) {
     _options = options;
-    _context = ZMQ.context(Session.ZMQ_IO_THREADS);
+    _evaluator = evaluator;
 
+    _context = ZMQ.context(Session.ZMQ_IO_THREADS);
     _controlSocket = createSocket(ZMQ.ROUTER, options.getControlPort());
     _shellSocket = createSocket(ZMQ.ROUTER, options.getShellPort());
     _ioPubSocket = createSocket(ZMQ.PUB, options.getIOPubPort());
 
-    _worker = new SessionWorker();
+    _worker = new SessionWorker(this);
 
     _publishQueue = new LinkedList<Message>();
 
     _stopped = true;
+  }
+
+  /**
+   * Gets the evaluator associated with the session to evaluate inputs.
+   * @return the current evaluation function.
+   */
+  public Evaluator getEvaluator() {
+    return _evaluator;
   }
 
   Socket createSocket(int socketType, int port) {
@@ -170,8 +183,8 @@ public final class Session implements MessageServices {
    * {@link MessageServices}
    */
   @Override
-  public void processTask(String taskInput, Message message) {
-    SessionTask task = new SessionTask(taskInput, message);
+  public void processTask(String content, Message message) {
+    SessionTask task = new SessionTask(content, message);
     _worker.addTask(task);
   }
 

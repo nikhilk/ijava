@@ -4,16 +4,19 @@
 package ijava;
 
 import ijava.kernel.*;
+import ijava.shell.*;
 
 /**
  * Represents the entry point of the IJava kernel.
  */
 public final class Application {
 
+  private final InteractiveShell _shell;
   private final Session _session;
 
   private Application(SessionOptions options) {
-    _session = new Session(options);
+    _shell = new InteractiveShell();
+    _session = new Session(options, _shell);
   }
 
   /**
