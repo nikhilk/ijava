@@ -10,8 +10,8 @@
   <name>ijava</name>
 
   <modules>
+    <module>api</module>
     <module>shell</module>
-    <module>app</module>
     <module>kernel</module>
   </modules>
 
