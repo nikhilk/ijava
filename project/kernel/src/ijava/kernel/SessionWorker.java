@@ -63,8 +63,10 @@ public final class SessionWorker implements Runnable {
     PrintStream stderr = System.err;
     InputStream stdin = System.in;
 
-    PrintStream capturedStdout = new CapturedPrintStream(StreamMessage.STDOUT, stdout);
-    PrintStream capturedStderr = new CapturedPrintStream(StreamMessage.STDERR, stderr);
+    PrintStream capturedStdout =
+        new CapturedPrintStream(StreamMessage.STDOUT, parentMessage, stdout);
+    PrintStream capturedStderr =
+        new CapturedPrintStream(StreamMessage.STDERR, parentMessage, stderr);
     InputStream disabledStdin = new DisabledInputStream();
 
     Exception error = null;
@@ -77,6 +79,7 @@ public final class SessionWorker implements Runnable {
       result = _session.getEvaluator().evaluate(task.getContent());
     }
     catch (Exception e) {
+      e.printStackTrace();
       error = e;
     }
     finally {
@@ -175,26 +178,48 @@ public final class SessionWorker implements Runnable {
    */
   private final class CapturedPrintStream extends PrintStream {
 
+    private final static int MAX_BUFFER_SIZE = 240;
+
     private final String _name;
+    private final Message _parentMessage;
+
+    private StringBuilder _buffer;
 
     /**
      * Initializes a CapturedPrintStream instance with the stream name.
      * @param name the name of the stream.
+     * @param parentMessage the associated message being processed.
      * @param out the underlying output stream.
      */
-    public CapturedPrintStream(String name, OutputStream out) {
+    public CapturedPrintStream(String name, Message parentMessage, OutputStream out) {
       super(out);
       _name = name;
+      _parentMessage = parentMessage;
     }
 
     @Override
     public void flush() {
-      // TODO: Implement this
+      if (_buffer != null) {
+        String text = _buffer.toString();
+        _buffer = null;
+
+        StreamMessage message = new StreamMessage(_parentMessage.getIdentity(),
+                                                  _parentMessage.getHeader(),
+                                                  _name, text);
+        _session.sendMessage(message.associateChannel(MessageChannel.Output));
+      }
     }
 
     @Override
     public void print(String s) {
-      // TODO: Implement this
+      if (_buffer == null) {
+        _buffer = new StringBuilder();
+      }
+
+      _buffer.append(s);
+      if (_buffer.length() >= CapturedPrintStream.MAX_BUFFER_SIZE) {
+        flush();
+      }
     }
   }
 

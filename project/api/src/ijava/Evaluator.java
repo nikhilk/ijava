@@ -12,6 +12,7 @@ public interface Evaluator {
    * Invokes the evaluator.
    * @param data the input data to be evaluated.
    * @return the result of evaluation if any.
+   * @throws Exception if there is an evaluation error.
    */
-  Object evaluate(String data);
+  Object evaluate(String data) throws Exception;
 }
