@@ -128,7 +128,7 @@ public final class Session implements MessageServices {
     SessionHeartbeat.start(this, _options);
 
     // Send an initial idle message
-    processOutgoingMessage(StatusMessage.createIdleStatus());
+    processOutgoingMessage(KernelInfo.StatusMessage.createIdleStatus());
 
     // This thread will handle incoming socket messages and send out-going socket messages.
     // In other words, all socket processing occurs in the thread that the sockets were

@@ -6,6 +6,7 @@ package ijava.kernel;
 import java.io.*;
 import java.util.*;
 
+import ijava.data.*;
 import ijava.kernel.protocol.*;
 import ijava.kernel.protocol.messages.*;
 
@@ -64,9 +65,9 @@ public final class SessionWorker implements Runnable {
     InputStream stdin = System.in;
 
     PrintStream capturedStdout =
-        new CapturedPrintStream(StreamMessage.STDOUT, parentMessage, stdout);
+        new CapturedPrintStream(Output.StreamMessage.STDOUT, parentMessage, stdout);
     PrintStream capturedStderr =
-        new CapturedPrintStream(StreamMessage.STDERR, parentMessage, stderr);
+        new CapturedPrintStream(Output.StreamMessage.STDERR, parentMessage, stderr);
     InputStream disabledStdin = new DisabledInputStream();
 
     Exception error = null;
@@ -93,10 +94,10 @@ public final class SessionWorker implements Runnable {
     }
 
     // Send a message to display the result, if there was any.
-    Map<String, String> data = DataMessage.createData(result);
+    DisplayData data = DisplayData.create(result);
     if (data != null) {
-      DataMessage dataMessage =
-          new DataMessage(parentMessage.getIdentity(), parentMessage.getHeader(), data);
+      Output.DataMessage dataMessage =
+          new Output.DataMessage(parentMessage.getIdentity(), parentMessage.getHeader(), data);
       _session.sendMessage(dataMessage.associateChannel(MessageChannel.Output));
     }
 
@@ -147,7 +148,7 @@ public final class SessionWorker implements Runnable {
         if (!busy) {
           // Transitioning from idle to busy
           busy = true;
-          _session.sendMessage(StatusMessage.createBusyStatus());
+          _session.sendMessage(KernelInfo.StatusMessage.createBusyStatus());
         }
 
         counter = processTask(task, counter);
@@ -156,7 +157,7 @@ public final class SessionWorker implements Runnable {
         if (busy) {
           // Transitioning from busy to idle
           busy = false;
-          _session.sendMessage(StatusMessage.createIdleStatus());
+          _session.sendMessage(KernelInfo.StatusMessage.createIdleStatus());
         }
       }
 
@@ -203,9 +204,9 @@ public final class SessionWorker implements Runnable {
         String text = _buffer.toString();
         _buffer = null;
 
-        StreamMessage message = new StreamMessage(_parentMessage.getIdentity(),
-                                                  _parentMessage.getHeader(),
-                                                  _name, text);
+        Output.StreamMessage message =
+            new Output.StreamMessage(_parentMessage.getIdentity(), _parentMessage.getHeader(),
+                                     _name, text);
         _session.sendMessage(message.associateChannel(MessageChannel.Output));
       }
     }
