@@ -34,10 +34,11 @@ public final class SnippetParser {
   /**
    * Parse the specified string of code into a Snippet.
    * @param code the text to be parsed.
+   * @param id a numeric id to use to generate unique names.
    * @return the Snippet object and associated metadata.
    * @throws SnippetException if there is an error parsing the code.
    */
-  public Snippet parse(String code) throws SnippetException {
+  public Snippet parse(String code, int id) throws SnippetException {
     List<String> errors = new ArrayList<String>();
 
     // First, attempt to parse the code as a complete java file, i.e. a compilation unit.
@@ -50,6 +51,8 @@ public final class SnippetParser {
       return Snippet.compilationUnit(code, className);
     }
 
+    String generatedClassName = "__Class" + id + "__";
+
     // If that didn't work, next attempt to parse the code as the body of a class, i.e. a set of
     // class members.
     Map<String, Object> classMembers = parseAsClassMembers(code, errors);
@@ -58,13 +61,13 @@ public final class SnippetParser {
         throw new SnippetException(errors);
       }
 
-      return Snippet.classMembers(code, classMembers);
+      return Snippet.classMembers(code, generatedClassName, classMembers);
     }
 
     // Finally try parsing as a set of statements, which is a catch-all scenario.
     parseAsCodeBlock(code, errors);
     if (errors.size() == 0) {
-      return Snippet.codeBlock(code);
+      return Snippet.codeBlock(code, generatedClassName);
     }
 
     throw new SnippetException(errors);

@@ -14,13 +14,14 @@ public final class SnippetParserClassMembersTests {
     Snippet snippet = null;
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());
     }
 
     Assert.assertEquals(SnippetType.ClassMembers, snippet.getType());
+    Assert.assertEquals(snippet.getClassName(), "__Class1__");
     Assert.assertEquals(1, snippet.getClassMembers().size());
     Assert.assertTrue(snippet.getClassMembers().containsKey("i"));
   }
@@ -32,7 +33,7 @@ public final class SnippetParserClassMembersTests {
     Snippet snippet = null;
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());
@@ -50,7 +51,7 @@ public final class SnippetParserClassMembersTests {
     Snippet snippet = null;
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());
@@ -72,7 +73,7 @@ public final class SnippetParserClassMembersTests {
     Snippet snippet = null;
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());

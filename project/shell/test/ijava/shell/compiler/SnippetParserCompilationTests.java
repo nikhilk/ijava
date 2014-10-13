@@ -15,7 +15,7 @@ public final class SnippetParserCompilationTests {
 
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());
@@ -33,7 +33,7 @@ public final class SnippetParserCompilationTests {
 
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());
@@ -51,7 +51,7 @@ public final class SnippetParserCompilationTests {
 
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(code);
+      snippet = parser.parse(code, 1);
     }
     catch (SnippetException e) {
       Assert.fail(e.getMessage());

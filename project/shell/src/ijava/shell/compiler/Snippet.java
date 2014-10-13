@@ -10,30 +10,36 @@ import java.util.*;
  */
 public final class Snippet {
 
-  private final String _code;
   private final SnippetType _type;
+  private final String _code;
+  private final String _className;
 
-  private String _className;
   private Map<String, Object> _classMembers;
+
+  private String _rewrittenCode;
 
   /**
    * Creates an instance of a Snippet from its code and type.
-   * @param code the code represented by the snippet.
    * @param type the type of the snippet inferred from the code.
+   * @param code the code represented by the snippet.
+   * @param className the name of the top-level class.
    */
-  private Snippet(String code, SnippetType type) {
+  private Snippet(SnippetType type, String code, String className) {
     _code = code;
     _type = type;
+    _className = className;
   }
 
   /**
    * Creates a code snippet representing one or more class members.
    * @param code the code representing the snippet.
+   * @param className the name of the top-level class.
    * @param classMembers the list of members declared in the code.
    * @return a Snippet object.
    */
-  public static Snippet classMembers(String code, Map<String, Object> classMembers) {
-    Snippet snippet = new Snippet(code, SnippetType.ClassMembers);
+  public static Snippet classMembers(String code, String className,
+                                     Map<String, Object> classMembers) {
+    Snippet snippet = new Snippet(SnippetType.ClassMembers, code, className);
     snippet._classMembers = classMembers;
 
     return snippet;
@@ -42,11 +48,11 @@ public final class Snippet {
   /**
    * Creates a code snippet representing an executable block of statements.
    * @param code the code representing the snippet.
-   * @param parseContext optional parser related information.
+   * @param className the name of the top-level class.
    * @return a Snippet object.
    */
-  public static Snippet codeBlock(String code) {
-    return new Snippet(code, SnippetType.CodeBlock);
+  public static Snippet codeBlock(String code, String className) {
+    return new Snippet(SnippetType.CodeBlock, code, className);
   }
 
   /**
@@ -56,10 +62,7 @@ public final class Snippet {
    * @return a Snippet object.
    */
   public static Snippet compilationUnit(String code, String className) {
-    Snippet snippet = new Snippet(code, SnippetType.CompilationUnit);
-    snippet._className = className;
-
-    return snippet;
+    return new Snippet(SnippetType.CompilationUnit, code, className);
   }
 
   /**
@@ -78,7 +81,6 @@ public final class Snippet {
    * @return the name of the top-level class.
    */
   public String getClassName() {
-    assert _type == SnippetType.CompilationUnit : "Only applicable to CompilationUnit snippets.";
     return _className;
   }
 
@@ -88,6 +90,27 @@ public final class Snippet {
    */
   public String getCode() {
     return _code;
+  }
+
+  /**
+   * Gets the rewritten version of the snippet code.
+   * @return the compilable snippet code.
+   */
+  public String getRewrittenCode() {
+    if (_rewrittenCode != null) {
+      return _rewrittenCode;
+    }
+    else {
+      return getCode();
+    }
+  }
+
+  /**
+   * Sets the rewritten version of the snippet code.
+   * @param value the compilable rewritten snippet code.
+   */
+  public void setRewrittenCode(String value) {
+    _rewrittenCode = value;
   }
 
   /**

@@ -73,7 +73,7 @@ public final class SessionWorker implements Runnable {
                                                                parentMessage)));
       System.setIn(new DisabledInputStream());
 
-      result = _session.getEvaluator().evaluate(task.getContent());
+      result = _session.getEvaluator().evaluate(task.getContent(), counter);
     }
     catch (Exception e) {
       e.printStackTrace();

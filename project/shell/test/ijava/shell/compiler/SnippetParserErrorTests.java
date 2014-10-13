@@ -13,7 +13,7 @@ public final class SnippetParserErrorTests {
 
     try {
       SnippetParser parser = new SnippetParser();
-      parser.parse(code);
+      parser.parse(code, 1);
 
       Assert.fail("Expected an exception to be raised.");
     }
@@ -27,7 +27,7 @@ public final class SnippetParserErrorTests {
 
     try {
       SnippetParser parser = new SnippetParser();
-      parser.parse(code);
+      parser.parse(code, 1);
 
       Assert.fail("Expected an exception to be raised.");
     }
@@ -42,7 +42,7 @@ public final class SnippetParserErrorTests {
 
     try {
       SnippetParser parser = new SnippetParser();
-      parser.parse(code);
+      parser.parse(code, 1);
 
       Assert.fail("Expected an exception to be raised.");
     }
