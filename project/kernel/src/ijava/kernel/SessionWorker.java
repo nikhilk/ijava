@@ -64,18 +64,14 @@ public final class SessionWorker implements Runnable {
     PrintStream stderr = System.err;
     InputStream stdin = System.in;
 
-    PrintStream capturedStdout =
-        new CapturedPrintStream(Output.StreamMessage.STDOUT, parentMessage, stdout);
-    PrintStream capturedStderr =
-        new CapturedPrintStream(Output.StreamMessage.STDERR, parentMessage, stderr);
-    InputStream disabledStdin = new DisabledInputStream();
-
     Exception error = null;
     Object result = null;
     try {
-      System.setOut(capturedStdout);
-      System.setErr(capturedStderr);
-      System.setIn(disabledStdin);
+      System.setOut(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDOUT,
+                                                               parentMessage)));
+      System.setErr(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDERR,
+                                                               parentMessage)));
+      System.setIn(new DisabledInputStream());
 
       result = _session.getEvaluator().evaluate(task.getContent());
     }
@@ -85,8 +81,8 @@ public final class SessionWorker implements Runnable {
     }
     finally {
       // Flush the captured streams. This will send out any pending stream data to the client.
-      capturedStdout.flush();
-      capturedStderr.flush();
+      System.out.flush();
+      System.err.flush();
 
       System.setOut(stdout);
       System.setErr(stderr);
@@ -174,35 +170,33 @@ public final class SessionWorker implements Runnable {
 
 
   /**
-   * Implements a PrintStream that has been captured, allowing output to be redirected
-   * to the client of the current session.
+   * Implements an OutputStream that publishes written bytes as out-going messages.
    */
-  private final class CapturedPrintStream extends PrintStream {
+  private final class PublishingOutputStream extends OutputStream {
 
     private final static int MAX_BUFFER_SIZE = 240;
 
     private final String _name;
     private final Message _parentMessage;
-
-    private StringBuilder _buffer;
+    private final StringBuilder _buffer;
 
     /**
-     * Initializes a CapturedPrintStream instance with the stream name.
+     * Initializes a PublishingOutputStream instance with the stream name.
      * @param name the name of the stream.
      * @param parentMessage the associated message being processed.
-     * @param out the underlying output stream.
      */
-    public CapturedPrintStream(String name, Message parentMessage, OutputStream out) {
-      super(out);
+    public PublishingOutputStream(String name, Message parentMessage) {
       _name = name;
       _parentMessage = parentMessage;
+
+      _buffer = new StringBuilder(240);
     }
 
     @Override
     public void flush() {
-      if (_buffer != null) {
+      if (_buffer.length() != 0) {
         String text = _buffer.toString();
-        _buffer = null;
+        _buffer.setLength(0);
 
         Output.StreamMessage message =
             new Output.StreamMessage(_parentMessage.getIdentity(), _parentMessage.getHeader(),
@@ -212,15 +206,12 @@ public final class SessionWorker implements Runnable {
     }
 
     @Override
-    public void print(String s) {
-      if (_buffer == null) {
-        _buffer = new StringBuilder();
-      }
-
-      _buffer.append(s);
-      if (_buffer.length() >= CapturedPrintStream.MAX_BUFFER_SIZE) {
+    public void write(int b) throws IOException {
+      if (_buffer.length() >= PublishingOutputStream.MAX_BUFFER_SIZE) {
         flush();
       }
+
+      _buffer.append((char)b);
     }
   }
 
