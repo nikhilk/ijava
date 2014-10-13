@@ -6,7 +6,6 @@ package ijava.kernel.protocol.messages;
 import java.util.*;
 import org.json.simple.*;
 
-import ijava.data.*;
 import ijava.kernel.protocol.*;
 
 /**
