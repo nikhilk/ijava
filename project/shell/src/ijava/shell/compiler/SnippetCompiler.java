@@ -10,7 +10,6 @@ import org.eclipse.jdt.internal.compiler.batch.*;
 import org.eclipse.jdt.internal.compiler.env.*;
 import org.eclipse.jdt.internal.compiler.impl.*;
 import org.eclipse.jdt.internal.compiler.problem.*;
-import org.eclipse.jdt.internal.compiler.util.*;
 
 /**
  * Compiles snippets into executable classes.
@@ -18,15 +17,19 @@ import org.eclipse.jdt.internal.compiler.util.*;
 public final class SnippetCompiler {
 
   private final static CompilerOptions Options;
+  private final static String RuntimePath;
 
   static {
     HashMap<String, String> optionSet = new HashMap<String, String>();
-
     optionSet.put(CompilerOptions.OPTION_TargetPlatform, CompilerOptions.VERSION_1_7);
     optionSet.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_1_7);
     optionSet.put(CompilerOptions.OPTION_Compliance, CompilerOptions.VERSION_1_7);
 
     Options = new CompilerOptions(optionSet);
+
+    String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
+    RuntimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
+                                         resourcePath.indexOf("!/"));
   }
 
   public SnippetCompiler() {
@@ -38,15 +41,8 @@ public final class SnippetCompiler {
    * @return the compilation result from compiling the snippet.
    */
   public SnippetCompilation compile(Snippet snippet) {
-    ArrayList<FileSystem.Classpath> classPaths = new ArrayList<FileSystem.Classpath>();
-    Util.collectRunningVMBootclasspath(classPaths);
-
-    String[] paths = new String[classPaths.size()];
-    int i = 0;
-    for (FileSystem.Classpath cp : classPaths) {
-      paths[i] = cp.getPath();
-      i++;
-    }
+    String[] paths = new String[] { SnippetCompiler.RuntimePath };
+    System.out.println(paths[0]);
 
     INameEnvironment nameEnvironment = new FileSystem(paths, null, "UTF-8");
     IErrorHandlingPolicy errorHandlingPolicy = DefaultErrorHandlingPolicies.exitAfterAllProblems();
