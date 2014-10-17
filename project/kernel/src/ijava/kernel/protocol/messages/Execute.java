@@ -132,7 +132,7 @@ public final class Execute {
      */
     @SuppressWarnings("unchecked")
     public ErrorResponseMessage(String identity, JSONObject parentHeader, int executionCount,
-                                Exception error) {
+                                Throwable error) {
       super(identity, parentHeader, ResponseMessage.ErrorStatus, executionCount);
 
       JSONArray traceback = new JSONArray();

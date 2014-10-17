@@ -64,7 +64,7 @@ public final class SessionWorker implements Runnable {
     PrintStream stderr = System.err;
     InputStream stdin = System.in;
 
-    Exception error = null;
+    Throwable error = null;
     Object result = null;
     try {
       System.setOut(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDOUT,
@@ -75,9 +75,9 @@ public final class SessionWorker implements Runnable {
 
       result = _session.getEvaluator().evaluate(task.getContent(), counter);
     }
-    catch (Exception e) {
-      e.printStackTrace();
-      error = e;
+    catch (Throwable t) {
+      t.printStackTrace();
+      error = t;
     }
     finally {
       // Flush the captured streams. This will send out any pending stream data to the client.
