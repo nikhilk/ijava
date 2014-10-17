@@ -67,10 +67,19 @@ public final class SessionWorker implements Runnable {
     Throwable error = null;
     Object result = null;
     try {
+      // Replace the standard streams.
+      // Both stdout and stderr are published to the kernel client. The error output is buffered
+      // so it doesn't get interspersed within the output, by getting broken up into incremental
+      // blocks.
+      // Ideally it would have been fine to interleave, and have the client UI split resulting
+      // text spew across two different regions... but that doesn't seem to be the case in IPython.
+      //
+      // The stdin stream is simply disabled, i.e. fail fast if code attempts to read from it.
       System.setOut(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDOUT,
                                                                parentMessage)));
       System.setErr(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDERR,
-                                                               parentMessage)));
+                                                               parentMessage,
+                                                               /* autoFlush */ false)));
       System.setIn(new DisabledInputStream());
 
       result = _session.getEvaluator().evaluate(task.getContent(), counter);
@@ -180,14 +189,27 @@ public final class SessionWorker implements Runnable {
     private final Message _parentMessage;
     private final StringBuilder _buffer;
 
+    private final boolean _autoFlush;
+
     /**
      * Initializes a PublishingOutputStream instance with the stream name.
      * @param name the name of the stream.
      * @param parentMessage the associated message being processed.
      */
     public PublishingOutputStream(String name, Message parentMessage) {
+      this(name, parentMessage, /* autoFlush */ true);
+    }
+
+    /**
+     * Initializes a PublishingOutputStream instance with the stream name.
+     * @param name the name of the stream.
+     * @param parentMessage the associated message being processed.
+     * @param autoFlush whether to automatically flush as text is written.
+     */
+    public PublishingOutputStream(String name, Message parentMessage, boolean autoFlush) {
       _name = name;
       _parentMessage = parentMessage;
+      _autoFlush = autoFlush;
 
       _buffer = new StringBuilder(240);
     }
@@ -207,7 +229,7 @@ public final class SessionWorker implements Runnable {
 
     @Override
     public void write(int b) throws IOException {
-      if (_buffer.length() >= PublishingOutputStream.MAX_BUFFER_SIZE) {
+      if (_autoFlush && (_buffer.length() >= PublishingOutputStream.MAX_BUFFER_SIZE)) {
         flush();
       }
 
