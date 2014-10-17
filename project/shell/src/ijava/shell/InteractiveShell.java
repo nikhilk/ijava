@@ -4,6 +4,8 @@
 package ijava.shell;
 
 import java.util.*;
+import java.util.concurrent.*;
+
 import ijava.*;
 import ijava.shell.compiler.*;
 
@@ -41,6 +43,7 @@ public final class InteractiveShell implements Evaluator {
    */
   @Override
   public Object evaluate(String data, int evaluationID) throws Exception {
+    Object result = null;
     Snippet snippet = null;
 
     try {
@@ -58,25 +61,41 @@ public final class InteractiveShell implements Evaluator {
       SnippetCompilation compilation = compiler.compile(snippet, _classLoader);
 
       if (snippet.getType() == SnippetType.CompilationUnit) {
-        _classLoader = processByteCode(compilation.getByteCode());
+        // Process the resulting byte code for any new or updated types declared in the snippet.
+        processByteCode(compilation.getByteCode());
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
+        // Load the class created for the code block, and execute it.
         ClassLoader classLoader = new TransientClassLoader(_classLoader, compilation.getByteCode());
 
         Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
-        Runnable runnable = (Runnable)snippetClass.newInstance();
+        Callable<?> callable = (Callable<?>)snippetClass.newInstance();
 
-        runnable.run();
+        result = callable.call();
       }
     }
     catch (SnippetException e) {
       System.err.println(e.getMessage());
     }
 
-    return null;
+    return result;
   }
 
-  private ClassLoader processByteCode(Map<String, byte[]> byteCode) {
+  /**
+   * Gets the byte code for the specified class name.
+   * @param className the class to lookup.
+   * @return the bytes forming the class; null if it wasn't found.
+   */
+  public byte[] getByteCode(String className) {
+    return _byteCode.get(className);
+  }
+
+  /**
+   * Process the bytecode resulting from a compilation to add any new types resulting from the
+   * compilation. If there are new types, a new class loader is created.
+   * @param byteCode the byte code produced from a compilation.
+   */
+  private void processByteCode(Map<String, byte[]> byteCode) {
     HashSet<String> newNames = new HashSet<String>();
 
     for (Map.Entry<String, byte[]> byteCodeEntry : byteCode.entrySet()) {
@@ -96,23 +115,10 @@ public final class InteractiveShell implements Evaluator {
       newNames.add(name);
     }
 
-    if (newNames.size() == 0) {
-      // No new types added, so just keep using the same class loader
-      return _classLoader;
-    }
-    else {
+    if (newNames.size() != 0) {
       // Create a new class loader parented to the current one for the newly defined classes
-      return new ShellClassLoader(_classLoader, newNames);
+      _classLoader = new ShellClassLoader(_classLoader, newNames);
     }
-  }
-
-  /**
-   * Gets the byte code for the specified class name.
-   * @param className the class to lookup.
-   * @return the bytes forming the class; null if it wasn't found.
-   */
-  public byte[] getByteCode(String className) {
-    return _byteCode.get(className);
   }
 
 
