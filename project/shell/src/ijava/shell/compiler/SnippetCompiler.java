@@ -38,9 +38,10 @@ public final class SnippetCompiler {
   /**
    * Compiles the specified snippet.
    * @param snippet the snippet to compile.
+   * @param classLoader the current class loader containing referenced types and defined types.
    * @return the compilation result from compiling the snippet.
    */
-  public SnippetCompilation compile(Snippet snippet) {
+  public SnippetCompilation compile(Snippet snippet, ClassLoader classLoader) {
     String[] paths = new String[] { SnippetCompiler.RuntimePath };
     System.out.println(paths[0]);
 
@@ -65,38 +66,20 @@ public final class SnippetCompiler {
                                                        problemFactory);
     compiler.compile(units);
 
-    return new SnippetCompilation(compilerTask.getClassLoader());
-  }
-
-
-  private final class InMemoryClassLoader extends ClassLoader {
-
-    private final Map<String, byte[]> _byteCode;
-
-    public InMemoryClassLoader(Map<String, byte[]> byteCode) {
-      super();
-      _byteCode = byteCode;
-    }
-
-    @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
-      byte[] bytes = _byteCode.get(name);
-      if (bytes == null) {
-        return super.findClass(name);
-      }
-      else {
-        return defineClass(name, bytes, 0, bytes.length);
-      }
-    }
+    return new SnippetCompilation(compilerTask.getByteCode());
   }
 
 
   private final class CompilerTask implements ICompilerRequestor {
 
-    private ClassLoader _classLoader;
+    private Map<String, byte[]> _byteCode;
 
-    public ClassLoader getClassLoader() {
-      return _classLoader;
+    public CompilerTask() {
+      _byteCode = new HashMap<String, byte[]>();
+    }
+
+    public Map<String, byte[]> getByteCode() {
+      return _byteCode;
     }
 
     /**
@@ -104,13 +87,10 @@ public final class SnippetCompiler {
      */
     @Override
     public void acceptResult(CompilationResult result) {
-      HashMap<String, byte[]> byteCode = new HashMap<String, byte[]>();
       for (ClassFile classFile : result.getClassFiles()) {
         String name = new String(CharOperation.concatWith(classFile.getCompoundName(), '.'));
-        byteCode.put(name, classFile.getBytes());
+        _byteCode.put(name, classFile.getBytes());
       }
-
-      _classLoader = new InMemoryClassLoader(byteCode);
     }
   }
 }

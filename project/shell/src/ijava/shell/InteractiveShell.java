@@ -3,6 +3,7 @@
 
 package ijava.shell;
 
+import java.util.*;
 import ijava.*;
 import ijava.shell.compiler.*;
 
@@ -14,6 +15,10 @@ public final class InteractiveShell implements Evaluator {
   private final SnippetDependencies _dependencies;
   private final SnippetRewriter _rewriter;
 
+  private final HashMap<String, byte[]> _byteCode;
+
+  private ClassLoader _classLoader;
+
   /**
    * Initializes an instance of an InteractiveShell.
    */
@@ -23,6 +28,12 @@ public final class InteractiveShell implements Evaluator {
 
     _dependencies.addImport("java.io.*", /* staticImport */ false);
     _dependencies.addImport("java.util.*", /* staticImport */ false);
+
+    // The map containing all bytecode generated for declared types key'd by full classname.
+    _byteCode = new HashMap<String, byte[]>();
+
+    // Default the class loader to the system one initially.
+    _classLoader = ClassLoader.getSystemClassLoader();
   }
 
   /**
@@ -43,11 +54,16 @@ public final class InteractiveShell implements Evaluator {
       System.out.println(snippet.getRewrittenCode());
       System.out.println("----");
 
-      if (snippet.getType() == SnippetType.CodeBlock) {
-        SnippetCompiler compiler = new SnippetCompiler();
-        SnippetCompilation compilation = compiler.compile(snippet);
+      SnippetCompiler compiler = new SnippetCompiler();
+      SnippetCompilation compilation = compiler.compile(snippet, _classLoader);
 
-        Class<?> snippetClass = compilation.getClassLoader().loadClass(snippet.getClassName());
+      if (snippet.getType() == SnippetType.CompilationUnit) {
+        _classLoader = processByteCode(compilation.getByteCode());
+      }
+      else if (snippet.getType() == SnippetType.CodeBlock) {
+        ClassLoader classLoader = new TransientClassLoader(_classLoader, compilation.getByteCode());
+
+        Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
         Runnable runnable = (Runnable)snippetClass.newInstance();
 
         runnable.run();
@@ -58,5 +74,128 @@ public final class InteractiveShell implements Evaluator {
     }
 
     return null;
+  }
+
+  private ClassLoader processByteCode(Map<String, byte[]> byteCode) {
+    HashSet<String> newNames = new HashSet<String>();
+
+    for (Map.Entry<String, byte[]> byteCodeEntry : byteCode.entrySet()) {
+      String name = byteCodeEntry.getKey();
+      byte[] bytes = byteCodeEntry.getValue();
+
+      byte[] existingBytes = _byteCode.get(name);
+      if ((existingBytes != null) && Arrays.equals(existingBytes, bytes)) {
+        // Same name, same byte code ... likely the user simply re-executed the same code.
+        // Ignore the new class in favor of keeping the old class identity, and increase chances
+        // that existing data instances of that class (should they exist) remain valid.
+
+        continue;
+      }
+
+      _byteCode.put(name, bytes);
+      newNames.add(name);
+    }
+
+    if (newNames.size() == 0) {
+      // No new types added, so just keep using the same class loader
+      return _classLoader;
+    }
+    else {
+      // Create a new class loader parented to the current one for the newly defined classes
+      return new ShellClassLoader(_classLoader, newNames);
+    }
+  }
+
+  /**
+   * Gets the byte code for the specified class name.
+   * @param className the class to lookup.
+   * @return the bytes forming the class; null if it wasn't found.
+   */
+  public byte[] getByteCode(String className) {
+    return _byteCode.get(className);
+  }
+
+
+  /**
+   * Base class for in-memory class loaders.
+   */
+  private abstract class InMemoryClassLoader extends ClassLoader {
+
+    private final HashMap<String, Class<?>> _loadedClasses;
+
+    /**
+     * Initializes an instance of a InMemoryClassLoader.
+     * @param parentClassLoader the parent class loader to chain with.
+     */
+    public InMemoryClassLoader(ClassLoader parentClassLoader) {
+      super(parentClassLoader);
+      _loadedClasses = new HashMap<String, Class<?>>();
+    }
+
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+      if (_loadedClasses.containsKey(name)) {
+        return _loadedClasses.get(name);
+      }
+
+      byte[] bytes = getByteCode(name);
+      if (bytes != null) {
+        Class<?> newClass = defineClass(name, bytes, 0, bytes.length);
+        resolveClass(newClass);
+
+        _loadedClasses.put(name, newClass);
+        return newClass;
+      }
+
+      return super.findClass(name);
+    }
+
+    protected abstract byte[] getByteCode(String name);
+  }
+
+  /**
+   * A class loader that holds on to classes declared within the shell.
+   */
+  private final class ShellClassLoader extends InMemoryClassLoader {
+
+    private final HashSet<String> _names;
+
+    /**
+     * Initializes an instance of a ShellClassLoader.
+     * @param parentClassLoader the parent class loader to chain with.
+     * @param names the list of names that should be resolved with this class loader.
+     */
+    public ShellClassLoader(ClassLoader parentClassLoader, HashSet<String> names) {
+      super(parentClassLoader);
+      _names = names;
+    }
+
+    @Override
+    protected byte[] getByteCode(String name) {
+      if (_names.contains(name)) {
+        return InteractiveShell.this.getByteCode(name);
+      }
+
+      return null;
+    }
+  }
+
+  /**
+   * A class loader that allows loading classes generated during compilation around code blocks
+   * entered into the shell. These class loaders are only in use while the code blocks are run.
+   */
+  private final class TransientClassLoader extends InMemoryClassLoader {
+
+    private final Map<String, byte[]> _byteCode;
+
+    public TransientClassLoader(ClassLoader parentClassLoader, Map<String, byte[]> byteCode) {
+      super(parentClassLoader);
+      _byteCode = byteCode;
+    }
+
+    @Override
+    protected byte[] getByteCode(String name) {
+      return _byteCode.get(name);
+    }
   }
 }

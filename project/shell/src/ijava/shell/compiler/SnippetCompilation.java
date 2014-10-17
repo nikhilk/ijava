@@ -3,26 +3,28 @@
 
 package ijava.shell.compiler;
 
+import java.util.*;
+
 /**
  * Represents the results of a snippet compilation.
  */
 public final class SnippetCompilation {
 
-  private final ClassLoader _classLoader;
+  private final Map<String, byte[]> _byteCode;
 
   /**
    * Initializes a SnippetCompilation instance.
-   * @param classLoader the resulting class loader.
+   * @param byteCode the resulting set of byte code buffers keyed by class names.
    */
-  public SnippetCompilation(ClassLoader classLoader) {
-    _classLoader = classLoader;
+  public SnippetCompilation(Map<String, byte[]> byteCode) {
+    _byteCode = byteCode;
   }
 
   /**
-   * Gets the class loader resulting from the compilation.
-   * @return the class loader containing compiled types.
+   * Gets the byte code resulting from the compilation.
+   * @return the set of byte code buffers keyed by class names.
    */
-  public ClassLoader getClassLoader() {
-    return _classLoader;
+  public Map<String, byte[]> getByteCode() {
+    return _byteCode;
   }
 }
