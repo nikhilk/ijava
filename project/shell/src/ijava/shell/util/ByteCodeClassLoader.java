@@ -10,34 +10,60 @@ import java.util.*;
  */
 public abstract class ByteCodeClassLoader extends ClassLoader {
 
+  private final int _id;
   private final HashMap<String, Class<?>> _loadedClasses;
 
   /**
    * Initializes an instance of a ByteCodeClassLoader.
    * @param parentClassLoader the parent class loader to chain with.
+   * @param id the ID of this class loader.
    */
-  public ByteCodeClassLoader(ClassLoader parentClassLoader) {
+  protected ByteCodeClassLoader(ClassLoader parentClassLoader, int id) {
     super(parentClassLoader);
+    _id = id;
     _loadedClasses = new HashMap<String, Class<?>>();
   }
 
-  @Override
-  protected Class<?> findClass(String name) throws ClassNotFoundException {
-    if (_loadedClasses.containsKey(name)) {
-      return _loadedClasses.get(name);
-    }
-
-    byte[] bytes = getByteCode(name);
-    if (bytes != null) {
-      Class<?> newClass = defineClass(name, bytes, 0, bytes.length);
-      resolveClass(newClass);
-
-      _loadedClasses.put(name, newClass);
-      return newClass;
-    }
-
-    return super.findClass(name);
+  public int getId() {
+    return _id;
   }
 
   protected abstract byte[] getByteCode(String name);
+
+  /**
+   * {@link ClassLoader}
+   */
+  @Override
+  protected synchronized Class<?> loadClass(String name, boolean resolve)
+      throws ClassNotFoundException {
+    // This method is overridden even though the docs suggest overriding findClass instead, so
+    // that class lookup is satisfied by the most recent class loader, i.e. deepest in the tree
+    // of class loaders, rather than use the default of starting at the top.
+
+    Class<?> result = findLoadedClass(name);
+    if (result != null) {
+      return result;
+    }
+
+    if (_loadedClasses.containsKey(name)) {
+      result = _loadedClasses.get(name);
+    }
+    else {
+      byte[] bytes = getByteCode(name);
+      if (bytes != null) {
+        result = defineClass(name, bytes, 0, bytes.length);
+        _loadedClasses.put(name, result);
+      }
+    }
+
+    if (result != null) {
+      if (resolve) {
+        resolveClass(result);
+      }
+      return result;
+    }
+    else {
+      return getParent().loadClass(name);
+    }
+  }
 }

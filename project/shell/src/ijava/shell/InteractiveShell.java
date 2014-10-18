@@ -18,6 +18,7 @@ public final class InteractiveShell implements Evaluator {
   private final SnippetDependencies _dependencies;
   private final SnippetRewriter _rewriter;
 
+  private final HashSet<String> _packages;
   private final HashMap<String, byte[]> _byteCode;
 
   private ClassLoader _classLoader;
@@ -31,6 +32,9 @@ public final class InteractiveShell implements Evaluator {
 
     _dependencies.addImport("java.io.*", /* staticImport */ false);
     _dependencies.addImport("java.util.*", /* staticImport */ false);
+
+    // The set of declared packages.
+    _packages = new HashSet<String>();
 
     // The map containing all bytecode generated for declared types key'd by full classname.
     _byteCode = new HashMap<String, byte[]>();
@@ -59,15 +63,18 @@ public final class InteractiveShell implements Evaluator {
       System.out.println("----");
 
       SnippetCompiler compiler = new SnippetCompiler();
-      SnippetCompilation compilation = compiler.compile(snippet, _classLoader);
+      SnippetCompilation compilation = compiler.compile(snippet, _packages, _byteCode);
 
       if (snippet.getType() == SnippetType.CompilationUnit) {
         // Process the resulting byte code for any new or updated types declared in the snippet.
-        processByteCode(compilation.getByteCode());
+        processCompilationResults(evaluationID,
+                                  compilation.getPackages(),
+                                  compilation.getByteCode());
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
         // Load the class created for the code block, and execute it.
-        ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, compilation.getByteCode());
+        ClassLoader classLoader =
+            new CodeBlockClassLoader(_classLoader, evaluationID, compilation.getByteCode());
 
         Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
         Callable<?> callable = (Callable<?>)snippetClass.newInstance();
@@ -94,11 +101,18 @@ public final class InteractiveShell implements Evaluator {
   /**
    * Process the bytecode resulting from a compilation to add any new types resulting from the
    * compilation. If there are new types, a new class loader is created.
-   * @param byteCode the byte code produced from a compilation.
+   * @param id the ID of the compilation to create unique names.
+   * @param packages the packages produced from the compilation.
+   * @param byteCode the byte code produced from the compilation.
    */
-  private void processByteCode(Map<String, byte[]> byteCode) {
-    HashSet<String> newNames = new HashSet<String>();
+  private void processCompilationResults(int id,
+                                         Set<String> packages,
+                                         Map<String, byte[]> byteCode) {
+    for (String packageName : packages) {
+      _packages.add(packageName);
+    }
 
+    HashSet<String> newNames = new HashSet<String>();
     for (Map.Entry<String, byte[]> byteCodeEntry : byteCode.entrySet()) {
       String name = byteCodeEntry.getKey();
       byte[] bytes = byteCodeEntry.getValue();
@@ -118,7 +132,7 @@ public final class InteractiveShell implements Evaluator {
 
     if (newNames.size() != 0) {
       // Create a new class loader parented to the current one for the newly defined classes
-      _classLoader = new ShellClassLoader(_classLoader, newNames);
+      _classLoader = new ShellClassLoader(_classLoader, id, newNames);
     }
   }
 
@@ -133,10 +147,11 @@ public final class InteractiveShell implements Evaluator {
     /**
      * Initializes an instance of a ShellClassLoader.
      * @param parentClassLoader the parent class loader to chain with.
+     * @param id the ID of this class loader.
      * @param names the list of names that should be resolved with this class loader.
      */
-    public ShellClassLoader(ClassLoader parentClassLoader, HashSet<String> names) {
-      super(parentClassLoader);
+    public ShellClassLoader(ClassLoader parentClassLoader, int id, HashSet<String> names) {
+      super(parentClassLoader, id);
       _names = names;
     }
 
@@ -158,8 +173,15 @@ public final class InteractiveShell implements Evaluator {
 
     private final Map<String, byte[]> _byteCode;
 
-    public CodeBlockClassLoader(ClassLoader parentClassLoader, Map<String, byte[]> byteCode) {
-      super(parentClassLoader);
+    /**
+     * Initializes an instance of a CodeBlockClassLoader.
+     * @param parentClassLoader the parent class loader to chain with.
+     * @param id the ID of this class loader.
+     * @return the set of byte code buffers keyed by class names.
+     */
+    public CodeBlockClassLoader(ClassLoader parentClassLoader, int id,
+                                Map<String, byte[]> byteCode) {
+      super(parentClassLoader, id);
       _byteCode = byteCode;
     }
 

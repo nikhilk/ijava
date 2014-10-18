@@ -7,6 +7,7 @@ import java.util.*;
 import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.*;
 import org.eclipse.jdt.internal.compiler.batch.*;
+import org.eclipse.jdt.internal.compiler.classfmt.*;
 import org.eclipse.jdt.internal.compiler.env.*;
 import org.eclipse.jdt.internal.compiler.impl.*;
 import org.eclipse.jdt.internal.compiler.problem.*;
@@ -38,18 +39,19 @@ public final class SnippetCompiler {
   /**
    * Compiles the specified snippet.
    * @param snippet the snippet to compile.
-   * @param classLoader the current class loader containing referenced types and defined types.
+   * @param packages the set of previously created package names.
+   * @param byteCode the byte buffers representing the set of previously defined classes.
    * @return the compilation result from compiling the snippet.
    */
-  public SnippetCompilation compile(Snippet snippet, ClassLoader classLoader) {
+  public SnippetCompilation compile(Snippet snippet,
+                                    Set<String> packages, Map<String, byte[]> byteCode) {
     String[] paths = new String[] { SnippetCompiler.RuntimePath };
-    System.out.println(paths[0]);
 
     INameEnvironment nameEnvironment = new FileSystem(paths, null, "UTF-8");
     IErrorHandlingPolicy errorHandlingPolicy = DefaultErrorHandlingPolicies.exitAfterAllProblems();
     IProblemFactory problemFactory = new DefaultProblemFactory();
 
-    CompilerTask compilerTask = new CompilerTask();
+    CompilerTask compilerTask = new CompilerTask(nameEnvironment, packages, byteCode);
     CompilerOptions compilerOptions = SnippetCompiler.Options;
 
     ICompilationUnit[] units = new ICompilationUnit[] {
@@ -59,27 +61,60 @@ public final class SnippetCompiler {
     };
 
     org.eclipse.jdt.internal.compiler.Compiler compiler =
-        new org.eclipse.jdt.internal.compiler.Compiler(nameEnvironment,
+        new org.eclipse.jdt.internal.compiler.Compiler(compilerTask,
                                                        errorHandlingPolicy,
                                                        compilerOptions,
                                                        compilerTask,
                                                        problemFactory);
     compiler.compile(units);
 
-    return new SnippetCompilation(compilerTask.getByteCode());
+    return new SnippetCompilation(compilerTask.getPackages(), compilerTask.getByteCode());
   }
 
 
-  private final class CompilerTask implements ICompilerRequestor {
+  /**
+   * Represents the current compilation task. This processes the results of a compilation, as well
+   * as resolves references to packages and classes.
+   */
+  private final class CompilerTask implements ICompilerRequestor, INameEnvironment {
 
-    private Map<String, byte[]> _byteCode;
+    private final INameEnvironment _references;
+    private final Set<String> _packages;
+    private final Map<String, byte[]> _byteCode;
 
-    public CompilerTask() {
-      _byteCode = new HashMap<String, byte[]>();
+    private final Map<String, byte[]> _newByteCode;
+    private final HashSet<String> _newPackages;
+
+    public CompilerTask(INameEnvironment references,
+                        Set<String> packages, Map<String, byte[]> byteCode) {
+      _references = references;
+      _packages = packages;
+      _byteCode = byteCode;
+
+      _newByteCode = new HashMap<String, byte[]>();
+      _newPackages = new HashSet<String>();
     }
 
     public Map<String, byte[]> getByteCode() {
-      return _byteCode;
+      return _newByteCode;
+    }
+
+    public Set<String> getPackages() {
+      return _newPackages;
+    }
+
+    private NameEnvironmentAnswer lookupType(String name) {
+      byte[] bytes = _byteCode.get(name);
+      if (bytes != null) {
+        try {
+          ClassFileReader classReader = new ClassFileReader(bytes, null);
+          return new NameEnvironmentAnswer(classReader, null);
+        }
+        catch (ClassFormatException e) {
+        }
+      }
+
+      return null;
     }
 
     /**
@@ -89,8 +124,70 @@ public final class SnippetCompiler {
     public void acceptResult(CompilationResult result) {
       for (ClassFile classFile : result.getClassFiles()) {
         String name = new String(CharOperation.concatWith(classFile.getCompoundName(), '.'));
-        _byteCode.put(name, classFile.getBytes());
+        _newByteCode.put(name, classFile.getBytes());
+
+        int packageSeparatorIndex = name.lastIndexOf('.');
+        if (packageSeparatorIndex > 0) {
+          String packageName = name.substring(0, packageSeparatorIndex);
+          _newPackages.add(packageName);
+        }
       }
+    }
+
+    /**
+     * {@link INameEnvironment}
+     */
+    @Override
+    public void cleanup() {
+      // Nothing to do here
+    }
+
+    /**
+     * {@link INameEnvironment}
+     */
+    @Override
+    public NameEnvironmentAnswer findType(char[][] compoundTypeName) {
+      String name = new String(CharOperation.concatWith(compoundTypeName, '.'));
+      NameEnvironmentAnswer answer = lookupType(name);
+
+      if (answer == null) {
+        answer = _references.findType(compoundTypeName);
+      }
+
+      return answer;
+    }
+
+    /**
+     * {@link INameEnvironment}
+     */
+    @Override
+    public NameEnvironmentAnswer findType(char[] typeName, char[][] packageName) {
+      String name = new String(CharOperation.concatWith(packageName, typeName, '.'));
+      NameEnvironmentAnswer answer = lookupType(name);
+
+      if (answer == null) {
+        answer = _references.findType(typeName, packageName);
+      }
+
+      return answer;
+    }
+
+    /**
+     * {@link INameEnvironment}
+     */
+    @Override
+    public boolean isPackage(char[][] parentPackageName, char[] packgeName) {
+      String name = new String(CharOperation.concatWith(parentPackageName, packgeName, '.'));
+      if (_packages.contains(name)) {
+        return true;
+      }
+
+      NameEnvironmentAnswer answer = lookupType(name);
+      if (answer != null) {
+        return false;
+      }
+
+      return _references.isPackage(parentPackageName, packgeName);
     }
   }
 }
