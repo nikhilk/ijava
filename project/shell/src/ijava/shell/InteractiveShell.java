@@ -5,7 +5,6 @@ package ijava.shell;
 
 import java.util.*;
 import java.util.concurrent.*;
-
 import ijava.*;
 import ijava.shell.compiler.*;
 import ijava.shell.util.*;
@@ -15,29 +14,26 @@ import ijava.shell.util.*;
  */
 public final class InteractiveShell implements Evaluator, SnippetShell {
 
-  private final SnippetDependencies _dependencies;
-  private final SnippetRewriter _rewriter;
-
+  private final HashSet<String> _imports;
+  private final HashSet<String> _staticImports;
   private final HashSet<String> _packages;
   private final HashMap<String, byte[]> _types;
 
   private ClassLoader _classLoader;
+  private String _cachedImports;
 
   /**
    * Initializes an instance of an InteractiveShell.
    */
   public InteractiveShell() {
-    _dependencies = new SnippetDependencies();
-    _rewriter = new SnippetRewriter(_dependencies);
-
-    _dependencies.addImport("java.io.*", /* staticImport */ false);
-    _dependencies.addImport("java.util.*", /* staticImport */ false);
-
-    // The set of declared packages.
+    _imports = new HashSet<String>();
+    _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
-
-    // The map containing byte code buffers for declared types keyed by class name.
     _types = new HashMap<String, byte[]>();
+
+    // Import a few packages by default
+    _imports.add("java.io.*");
+    _imports.add("java.util.*");
 
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
@@ -59,18 +55,19 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
         return null;
       }
 
-      _rewriter.rewriteSnippet(snippet);
+      SnippetRewriter rewriter = new SnippetRewriter(this);
+      rewriter.rewrite(snippet);
 
       SnippetCompiler compiler = new SnippetCompiler(this);
-      SnippetCompilation compilation = compiler.compile(snippet);
+      compiler.compile(snippet);
 
       if (snippet.getType() == SnippetType.CompilationUnit) {
         // Process the results to record new types, and packages.
-        processCompilationUnit(evaluationID, compilation);
+        processCompilationUnit(evaluationID, snippet);
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
         // Process the results to execute the code.
-        result = processCodeBlock(evaluationID, compilation);
+        result = processCodeBlock(evaluationID, snippet);
       }
     }
     catch (SnippetException e) {
@@ -84,14 +81,15 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
    * Process the results of compiling a code block. This involves creating a class loader around
    * the defined class, loading and instantiating that class and executing the code block.
    * @param id the ID to use to generate unique names.
-   * @param compilation the result of the code block compilation.
+   * @param snippet the compiled snippet.
    * @return the result of the code block execution.
    */
-  private Object processCodeBlock(int id, SnippetCompilation compilation)
+  private Object processCodeBlock(int id, Snippet snippet)
       throws Exception {
+    SnippetCompilation compilation = snippet.getCompilation();
     ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
 
-    Class<?> snippetClass = classLoader.loadClass(compilation.getClassName());
+    Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
     Callable<?> callable = (Callable<?>)snippetClass.newInstance();
 
     return callable.call();
@@ -103,9 +101,11 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
    * - Stashing (or optionally updating) the byte code for types defined, and saving a reference
    *   to the new class loader created to enable loading those types.
    * @param id the ID to use to generate unique names.
-   * @param compilation the result of the code block compilation.
+   * @param snippet the compiled snippet.
    */
-  private void processCompilationUnit(int id, SnippetCompilation compilation) {
+  private void processCompilationUnit(int id, Snippet snippet) {
+    SnippetCompilation compilation = snippet.getCompilation();
+
     for (String packageName : compilation.getPackages()) {
       _packages.add(packageName);
     }
@@ -132,6 +132,27 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
       // Create a new class loader parented to the current one for the newly defined classes
       _classLoader = new ShellClassLoader(_classLoader, id, newNames);
     }
+  }
+
+  /**
+   * {@link SnippetShell}
+   */
+  @Override
+  public String getImports() {
+    if (_cachedImports == null) {
+      StringBuilder sb = new StringBuilder();
+
+      for (String s : _imports) {
+        sb.append(String.format("import %s;\n", s));
+      }
+      for (String s : _staticImports) {
+        sb.append(String.format("import static %s;\n", s));
+      }
+
+      _cachedImports = sb.toString();
+    }
+
+    return _cachedImports;
   }
 
   /**

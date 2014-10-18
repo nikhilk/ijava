@@ -10,28 +10,17 @@ import java.util.*;
  */
 public final class SnippetCompilation {
 
-  private final String _className;
   private final Set<String> _packages;
   private final Map<String, byte[]> _types;
 
   /**
    * Initializes a SnippetCompilation instance.
-   * @param className the name of the primary class in the compilation.
    * @param packages the resulting set of package names (if any).
    * @param types the resulting set of types.
    */
-  public SnippetCompilation(String className, Set<String> packages, Map<String, byte[]> types) {
-    _className = className;
+  public SnippetCompilation(Set<String> packages, Map<String, byte[]> types) {
     _packages = packages;
     _types = types;
-  }
-
-  /**
-   * Gets the class name of the primary class in the compilation.
-   * @return
-   */
-  public String getClassName() {
-    return _className;
   }
 
   /**

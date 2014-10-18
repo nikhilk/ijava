@@ -8,14 +8,15 @@ package ijava.shell.compiler;
  */
 public final class SnippetRewriter {
 
-  private final SnippetDependencies _dependencies;
+  private final SnippetShell _shell;
 
   /**
-   * Initializes an instance of a SnippetRewriter.
-   * @param dependencies the dependencies to reference during rewriting.
+   * Initializes an instance of a SnippetRewriter with the shell that is performing the
+   * rewriting.
+   * @param shell the shell performing the rewriting.
    */
-  public SnippetRewriter(SnippetDependencies dependencies) {
-    _dependencies = dependencies;
+  public SnippetRewriter(SnippetShell shell) {
+    _shell = shell;
   }
 
   /**
@@ -23,12 +24,14 @@ public final class SnippetRewriter {
    * @param snippet the snippet to be rewritten.
    * @return the rewritten snippet code.
    */
-  public void rewriteSnippet(Snippet snippet) {
+  public void rewrite(Snippet snippet) {
     String rewrittenCode = null;
 
     if (snippet.getType() == SnippetType.CodeBlock) {
       rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
     }
+
+    // TODO: Rewrite compilation units (to add imports) and class members
 
     snippet.setRewrittenCode(rewrittenCode);
   }
@@ -36,7 +39,7 @@ public final class SnippetRewriter {
   private String rewriteCodeBlock(String className, String codeBlock) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append(_dependencies.toCode());
+    sb.append(_shell.getImports());
     sb.append('\n');
 
     // Wrap the code block into a call method on a class implementing Callable<Object>.

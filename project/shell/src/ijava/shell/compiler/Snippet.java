@@ -17,6 +17,7 @@ public final class Snippet {
   private Map<String, Object> _classMembers;
 
   private String _rewrittenCode;
+  private SnippetCompilation _compilation;
 
   /**
    * Creates an instance of a Snippet from its code and type.
@@ -90,6 +91,22 @@ public final class Snippet {
    */
   public String getCode() {
     return _code;
+  }
+
+  /**
+   * Gets the compilation result from compiling the snippet code.
+   * @return the compilation result.
+   */
+  public SnippetCompilation getCompilation() {
+    return _compilation;
+  }
+
+  /**
+   * Sets the compilation result from compiling the snippet code.
+   * @param value the compilation result.
+   */
+  public void setCompilation(SnippetCompilation value) {
+    _compilation = value;
   }
 
   /**

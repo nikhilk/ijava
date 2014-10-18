@@ -11,6 +11,12 @@ import java.util.*;
 public interface SnippetShell {
 
   /**
+   * Gets the list of imports.
+   * @return the list of imports as formatted code.
+   */
+  public String getImports();
+
+  /**
    * Gets the set of packages declared in previously processed packages.
    * @return the set of declared packages.
    */
