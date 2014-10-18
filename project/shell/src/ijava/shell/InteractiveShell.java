@@ -49,11 +49,10 @@ public final class InteractiveShell implements Evaluator {
   @Override
   public Object evaluate(String data, int evaluationID) throws Exception {
     Object result = null;
-    Snippet snippet = null;
 
     try {
       SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(data, evaluationID);
+      Snippet snippet = parser.parse(data, evaluationID);
 
       System.out.println("Snippet Type: " + snippet.getType());
 
@@ -66,20 +65,12 @@ public final class InteractiveShell implements Evaluator {
       SnippetCompilation compilation = compiler.compile(snippet, _packages, _byteCode);
 
       if (snippet.getType() == SnippetType.CompilationUnit) {
-        // Process the resulting byte code for any new or updated types declared in the snippet.
-        processCompilationResults(evaluationID,
-                                  compilation.getPackages(),
-                                  compilation.getByteCode());
+        // Process the results to record new types, and packages.
+        processCompilationUnit(evaluationID, compilation.getPackages(), compilation.getByteCode());
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
-        // Load the class created for the code block, and execute it.
-        ClassLoader classLoader =
-            new CodeBlockClassLoader(_classLoader, evaluationID, compilation.getByteCode());
-
-        Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
-        Callable<?> callable = (Callable<?>)snippetClass.newInstance();
-
-        result = callable.call();
+        // Process the results to execute the code.
+        result = processCodeBlock(evaluationID, compilation.getByteCode(), snippet.getClassName());
       }
     }
     catch (SnippetException e) {
@@ -90,24 +81,33 @@ public final class InteractiveShell implements Evaluator {
   }
 
   /**
-   * Gets the byte code for the specified class name.
-   * @param className the class to lookup.
-   * @return the bytes forming the class; null if it wasn't found.
+   * Process the results of compiling a code block. This involves creating a class loader around
+   * the defined class, loading and instantiating that class and executing the code block.
+   * @param id
+   * @param byteCode
+   * @param className
+   * @return
    */
-  public byte[] getByteCode(String className) {
-    return _byteCode.get(className);
+  private Object processCodeBlock(int id, Map<String, byte[]> byteCode, String className)
+      throws Exception {
+    ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, byteCode);
+
+    Class<?> snippetClass = classLoader.loadClass(className);
+    Callable<?> callable = (Callable<?>)snippetClass.newInstance();
+
+    return callable.call();
   }
 
   /**
-   * Process the bytecode resulting from a compilation to add any new types resulting from the
-   * compilation. If there are new types, a new class loader is created.
+   * Process the the results of compiling a compilation unit. This involves two things:
+   * - Recording any packages created in the process.
+   * - Stashing (or optionally updating) the byte code for types defined, and saving a reference
+   *   to the new class loader created to enable loading those types.
    * @param id the ID of the compilation to create unique names.
    * @param packages the packages produced from the compilation.
    * @param byteCode the byte code produced from the compilation.
    */
-  private void processCompilationResults(int id,
-                                         Set<String> packages,
-                                         Map<String, byte[]> byteCode) {
+  private void processCompilationUnit(int id, Set<String> packages, Map<String, byte[]> byteCode) {
     for (String packageName : packages) {
       _packages.add(packageName);
     }
@@ -158,7 +158,7 @@ public final class InteractiveShell implements Evaluator {
     @Override
     protected byte[] getByteCode(String name) {
       if (_names.contains(name)) {
-        return InteractiveShell.this.getByteCode(name);
+        return _byteCode.get(name);
       }
 
       return null;
