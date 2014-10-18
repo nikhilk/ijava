@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 
 import ijava.*;
 import ijava.shell.compiler.*;
+import ijava.shell.util.*;
 
 /**
  * Provides the interactive shell or REPL functionality for Java.
@@ -66,7 +67,7 @@ public final class InteractiveShell implements Evaluator {
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
         // Load the class created for the code block, and execute it.
-        ClassLoader classLoader = new TransientClassLoader(_classLoader, compilation.getByteCode());
+        ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, compilation.getByteCode());
 
         Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
         Callable<?> callable = (Callable<?>)snippetClass.newInstance();
@@ -123,46 +124,9 @@ public final class InteractiveShell implements Evaluator {
 
 
   /**
-   * Base class for in-memory class loaders.
-   */
-  private abstract class InMemoryClassLoader extends ClassLoader {
-
-    private final HashMap<String, Class<?>> _loadedClasses;
-
-    /**
-     * Initializes an instance of a InMemoryClassLoader.
-     * @param parentClassLoader the parent class loader to chain with.
-     */
-    public InMemoryClassLoader(ClassLoader parentClassLoader) {
-      super(parentClassLoader);
-      _loadedClasses = new HashMap<String, Class<?>>();
-    }
-
-    @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
-      if (_loadedClasses.containsKey(name)) {
-        return _loadedClasses.get(name);
-      }
-
-      byte[] bytes = getByteCode(name);
-      if (bytes != null) {
-        Class<?> newClass = defineClass(name, bytes, 0, bytes.length);
-        resolveClass(newClass);
-
-        _loadedClasses.put(name, newClass);
-        return newClass;
-      }
-
-      return super.findClass(name);
-    }
-
-    protected abstract byte[] getByteCode(String name);
-  }
-
-  /**
    * A class loader that holds on to classes declared within the shell.
    */
-  private final class ShellClassLoader extends InMemoryClassLoader {
+  private final class ShellClassLoader extends ByteCodeClassLoader {
 
     private final HashSet<String> _names;
 
@@ -187,14 +151,14 @@ public final class InteractiveShell implements Evaluator {
   }
 
   /**
-   * A class loader that allows loading classes generated during compilation around code blocks
-   * entered into the shell. These class loaders are only in use while the code blocks are run.
+   * A class loader that allows loading classes generated during compilation from code blocks
+   * entered into the shell, while that code is being executed.
    */
-  private final class TransientClassLoader extends InMemoryClassLoader {
+  private final class CodeBlockClassLoader extends ByteCodeClassLoader {
 
     private final Map<String, byte[]> _byteCode;
 
-    public TransientClassLoader(ClassLoader parentClassLoader, Map<String, byte[]> byteCode) {
+    public CodeBlockClassLoader(ClassLoader parentClassLoader, Map<String, byte[]> byteCode) {
       super(parentClassLoader);
       _byteCode = byteCode;
     }
