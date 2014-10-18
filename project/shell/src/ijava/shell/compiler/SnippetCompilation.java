@@ -10,30 +10,41 @@ import java.util.*;
  */
 public final class SnippetCompilation {
 
+  private final String _className;
   private final Set<String> _packages;
-  private final Map<String, byte[]> _byteCode;
+  private final Map<String, byte[]> _types;
 
   /**
    * Initializes a SnippetCompilation instance.
+   * @param className the name of the primary class in the compilation.
    * @param packages the resulting set of package names (if any).
-   * @param byteCode the resulting set of byte code buffers keyed by class names.
+   * @param types the resulting set of types.
    */
-  public SnippetCompilation(Set<String> packages, Map<String, byte[]> byteCode) {
+  public SnippetCompilation(String className, Set<String> packages, Map<String, byte[]> types) {
+    _className = className;
     _packages = packages;
-    _byteCode = byteCode;
+    _types = types;
   }
 
   /**
-   * Gets the byte code resulting from the compilation.
-   * @return the set of byte code buffers keyed by class names.
+   * Gets the class name of the primary class in the compilation.
+   * @return
    */
-  public Map<String, byte[]> getByteCode() {
-    return _byteCode;
+  public String getClassName() {
+    return _className;
   }
 
   /**
-   * Gets the resulting set of packages defined in the compilation.
-   * @return the set of package names.
+   * Gets the set of types resulting from compilation.
+   * @return a set of byte buffers representing byte code keyed by class name.
+   */
+  public Map<String, byte[]> getTypes() {
+    return _types;
+  }
+
+  /**
+   * Gets the set of packages resulting from compilation.
+   * @return a set of declared package names.
    */
   public Set<String> getPackages() {
     return _packages;

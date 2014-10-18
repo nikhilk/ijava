@@ -13,13 +13,13 @@ import ijava.shell.util.*;
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public final class InteractiveShell implements Evaluator {
+public final class InteractiveShell implements Evaluator, SnippetShell {
 
   private final SnippetDependencies _dependencies;
   private final SnippetRewriter _rewriter;
 
   private final HashSet<String> _packages;
-  private final HashMap<String, byte[]> _byteCode;
+  private final HashMap<String, byte[]> _types;
 
   private ClassLoader _classLoader;
 
@@ -36,8 +36,8 @@ public final class InteractiveShell implements Evaluator {
     // The set of declared packages.
     _packages = new HashSet<String>();
 
-    // The map containing all bytecode generated for declared types key'd by full classname.
-    _byteCode = new HashMap<String, byte[]>();
+    // The map containing byte code buffers for declared types keyed by class name.
+    _types = new HashMap<String, byte[]>();
 
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
@@ -61,16 +61,16 @@ public final class InteractiveShell implements Evaluator {
 
       _rewriter.rewriteSnippet(snippet);
 
-      SnippetCompiler compiler = new SnippetCompiler();
-      SnippetCompilation compilation = compiler.compile(snippet, _packages, _byteCode);
+      SnippetCompiler compiler = new SnippetCompiler(this);
+      SnippetCompilation compilation = compiler.compile(snippet);
 
       if (snippet.getType() == SnippetType.CompilationUnit) {
         // Process the results to record new types, and packages.
-        processCompilationUnit(evaluationID, compilation.getPackages(), compilation.getByteCode());
+        processCompilationUnit(evaluationID, compilation);
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
         // Process the results to execute the code.
-        result = processCodeBlock(evaluationID, compilation.getByteCode(), snippet.getClassName());
+        result = processCodeBlock(evaluationID, compilation);
       }
     }
     catch (SnippetException e) {
@@ -83,16 +83,15 @@ public final class InteractiveShell implements Evaluator {
   /**
    * Process the results of compiling a code block. This involves creating a class loader around
    * the defined class, loading and instantiating that class and executing the code block.
-   * @param id
-   * @param byteCode
-   * @param className
-   * @return
+   * @param id the ID to use to generate unique names.
+   * @param compilation the result of the code block compilation.
+   * @return the result of the code block execution.
    */
-  private Object processCodeBlock(int id, Map<String, byte[]> byteCode, String className)
+  private Object processCodeBlock(int id, SnippetCompilation compilation)
       throws Exception {
-    ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, byteCode);
+    ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
 
-    Class<?> snippetClass = classLoader.loadClass(className);
+    Class<?> snippetClass = classLoader.loadClass(compilation.getClassName());
     Callable<?> callable = (Callable<?>)snippetClass.newInstance();
 
     return callable.call();
@@ -103,21 +102,20 @@ public final class InteractiveShell implements Evaluator {
    * - Recording any packages created in the process.
    * - Stashing (or optionally updating) the byte code for types defined, and saving a reference
    *   to the new class loader created to enable loading those types.
-   * @param id the ID of the compilation to create unique names.
-   * @param packages the packages produced from the compilation.
-   * @param byteCode the byte code produced from the compilation.
+   * @param id the ID to use to generate unique names.
+   * @param compilation the result of the code block compilation.
    */
-  private void processCompilationUnit(int id, Set<String> packages, Map<String, byte[]> byteCode) {
-    for (String packageName : packages) {
+  private void processCompilationUnit(int id, SnippetCompilation compilation) {
+    for (String packageName : compilation.getPackages()) {
       _packages.add(packageName);
     }
 
     HashSet<String> newNames = new HashSet<String>();
-    for (Map.Entry<String, byte[]> byteCodeEntry : byteCode.entrySet()) {
-      String name = byteCodeEntry.getKey();
-      byte[] bytes = byteCodeEntry.getValue();
+    for (Map.Entry<String, byte[]> typeEntry : compilation.getTypes().entrySet()) {
+      String name = typeEntry.getKey();
+      byte[] bytes = typeEntry.getValue();
 
-      byte[] existingBytes = _byteCode.get(name);
+      byte[] existingBytes = _types.get(name);
       if ((existingBytes != null) && Arrays.equals(existingBytes, bytes)) {
         // Same name, same byte code ... likely the user simply re-executed the same code.
         // Ignore the new class in favor of keeping the old class identity, and increase chances
@@ -126,7 +124,7 @@ public final class InteractiveShell implements Evaluator {
         continue;
       }
 
-      _byteCode.put(name, bytes);
+      _types.put(name, bytes);
       newNames.add(name);
     }
 
@@ -136,6 +134,21 @@ public final class InteractiveShell implements Evaluator {
     }
   }
 
+  /**
+   * {@link SnippetShell}
+   */
+  @Override
+  public Set<String> getPackages() {
+    return _packages;
+  }
+
+  /**
+   * {@link SnippetShell}
+   */
+  @Override
+  public Map<String, byte[]> getTypes() {
+    return _types;
+  }
 
   /**
    * A class loader that holds on to classes declared within the shell.
@@ -158,7 +171,7 @@ public final class InteractiveShell implements Evaluator {
     @Override
     protected byte[] getByteCode(String name) {
       if (_names.contains(name)) {
-        return _byteCode.get(name);
+        return _types.get(name);
       }
 
       return null;
@@ -171,23 +184,23 @@ public final class InteractiveShell implements Evaluator {
    */
   private final class CodeBlockClassLoader extends ByteCodeClassLoader {
 
-    private final Map<String, byte[]> _byteCode;
+    private final Map<String, byte[]> _types;
 
     /**
      * Initializes an instance of a CodeBlockClassLoader.
      * @param parentClassLoader the parent class loader to chain with.
      * @param id the ID of this class loader.
-     * @return the set of byte code buffers keyed by class names.
+     * @param types the set of byte code buffers for types keyed by class names.
      */
     public CodeBlockClassLoader(ClassLoader parentClassLoader, int id,
-                                Map<String, byte[]> byteCode) {
+                                Map<String, byte[]> types) {
       super(parentClassLoader, id);
-      _byteCode = byteCode;
+      _types = types;
     }
 
     @Override
     protected byte[] getByteCode(String name) {
-      return _byteCode.get(name);
+      return _types.get(name);
     }
   }
 }
