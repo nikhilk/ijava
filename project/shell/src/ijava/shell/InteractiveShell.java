@@ -54,12 +54,12 @@ public final class InteractiveShell implements Evaluator {
       SnippetParser parser = new SnippetParser();
       Snippet snippet = parser.parse(data, evaluationID);
 
-      System.out.println("Snippet Type: " + snippet.getType());
+      if (snippet.getType() == SnippetType.ClassMembers) {
+        System.err.println("Only full types and statements are supported at this time.");
+        return null;
+      }
 
       _rewriter.rewriteSnippet(snippet);
-      System.out.println("----");
-      System.out.println(snippet.getRewrittenCode());
-      System.out.println("----");
 
       SnippetCompiler compiler = new SnippetCompiler();
       SnippetCompilation compilation = compiler.compile(snippet, _packages, _byteCode);
