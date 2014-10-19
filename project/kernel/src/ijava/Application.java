@@ -11,11 +11,11 @@ import ijava.shell.*;
  */
 public final class Application {
 
-  private final InteractiveShell _shell;
+  private final JavaShell _shell;
   private final Session _session;
 
   private Application(SessionOptions options) {
-    _shell = new InteractiveShell();
+    _shell = new JavaShell();
     _session = new Session(options, _shell);
   }
 

@@ -1,4 +1,4 @@
-// InteractiveShell.java
+// JavaShell.java
 //
 
 package ijava.shell;
@@ -12,7 +12,7 @@ import ijava.shell.util.*;
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public final class InteractiveShell implements Evaluator, SnippetShell {
+public final class JavaShell implements Evaluator, SnippetShell {
 
   private final HashSet<String> _imports;
   private final HashSet<String> _staticImports;
@@ -25,7 +25,7 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
   /**
    * Initializes an instance of an InteractiveShell.
    */
-  public InteractiveShell() {
+  public JavaShell() {
     _imports = new HashSet<String>();
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
@@ -37,57 +37,6 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
 
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
-  }
-
-  /**
-   * {@link Evaluator}
-   */
-  @Override
-  public Object evaluate(String data, int evaluationID) throws Exception {
-    Object result = null;
-
-    Snippet snippet = null;
-
-    try {
-      SnippetParser parser = new SnippetParser();
-      snippet = parser.parse(data, evaluationID);
-    }
-    catch (SnippetException e) {
-      throw new EvaluationError(e.getMessage(), e);
-    }
-
-    if (snippet.getType() == SnippetType.ClassMembers) {
-      System.err.println("Only full types and statements are supported at this time.");
-      return null;
-    }
-
-    SnippetRewriter rewriter = new SnippetRewriter(this);
-    rewriter.rewrite(snippet);
-
-    SnippetCompiler compiler = new SnippetCompiler(this);
-    if (compiler.compile(snippet)) {
-      if (snippet.getType() == SnippetType.CompilationUnit) {
-        // Process the results to record new types, and packages.
-        processCompilationUnit(evaluationID, snippet);
-        return null;
-      }
-      else if (snippet.getType() == SnippetType.CodeBlock) {
-        // Process the results to execute the code.
-        return processCodeBlock(evaluationID, snippet);
-      }
-
-      return result;
-    }
-    else {
-      // Raise an error for compilation errors
-      StringBuilder errorBuilder = new StringBuilder();
-      for (String error : snippet.getCompilation().getErrors()) {
-        errorBuilder.append(error);
-        errorBuilder.append("\n");
-      }
-
-      throw new EvaluationError(errorBuilder.toString());
-    }
   }
 
   /**
@@ -144,6 +93,57 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
     if (newNames.size() != 0) {
       // Create a new class loader parented to the current one for the newly defined classes
       _classLoader = new ShellClassLoader(_classLoader, id, newNames);
+    }
+  }
+
+  /**
+   * {@link Evaluator}
+   */
+  @Override
+  public Object evaluate(String data, int evaluationID) throws Exception {
+    Object result = null;
+
+    Snippet snippet = null;
+
+    try {
+      SnippetParser parser = new SnippetParser();
+      snippet = parser.parse(data, evaluationID);
+    }
+    catch (SnippetException e) {
+      throw new EvaluationError(e.getMessage(), e);
+    }
+
+    if (snippet.getType() == SnippetType.ClassMembers) {
+      System.err.println("Only full types and statements are supported at this time.");
+      return null;
+    }
+
+    SnippetRewriter rewriter = new SnippetRewriter(this);
+    rewriter.rewrite(snippet);
+
+    SnippetCompiler compiler = new SnippetCompiler(this);
+    if (compiler.compile(snippet)) {
+      if (snippet.getType() == SnippetType.CompilationUnit) {
+        // Process the results to record new types, and packages.
+        processCompilationUnit(evaluationID, snippet);
+        return null;
+      }
+      else if (snippet.getType() == SnippetType.CodeBlock) {
+        // Process the results to execute the code.
+        return processCodeBlock(evaluationID, snippet);
+      }
+
+      return result;
+    }
+    else {
+      // Raise an error for compilation errors
+      StringBuilder errorBuilder = new StringBuilder();
+      for (String error : snippet.getCompilation().getErrors()) {
+        errorBuilder.append(error);
+        errorBuilder.append("\n");
+      }
+
+      throw new EvaluationError(errorBuilder.toString());
     }
   }
 
