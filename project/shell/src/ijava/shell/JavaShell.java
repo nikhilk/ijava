@@ -7,12 +7,15 @@ import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
 import ijava.shell.compiler.*;
+import ijava.shell.extensions.*;
 import ijava.shell.util.*;
 
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
 public final class JavaShell implements Evaluator, SnippetShell {
+
+  private final HashMap<String, EvaluatorExtension> _extensions;
 
   private final HashSet<String> _imports;
   private final HashSet<String> _staticImports;
@@ -26,17 +29,59 @@ public final class JavaShell implements Evaluator, SnippetShell {
    * Initializes an instance of an InteractiveShell.
    */
   public JavaShell() {
+    _extensions = new HashMap<String, EvaluatorExtension>();
+
     _imports = new HashSet<String>();
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
 
-    // Import a few packages by default
-    _imports.add("java.io.*");
-    _imports.add("java.util.*");
-
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
+
+    // Import a few packages by default
+    addImport("java.io.*", /* staticImport */ false);
+    addImport("java.util.*", /* staticImport */ false);
+
+    // Register a few extensions by default
+    registerExtension("import", new JavaExtensions.ImportExtension());
+  }
+
+  /**
+   * Adds a package to be imported for subsequent compilations.
+   * @param importName the package or type to be imported.
+   * @param staticImport whether the import should be a static import of a type.
+   */
+  public void addImport(String importName, boolean staticImport) {
+    if (staticImport) {
+      _staticImports.add(importName);
+    }
+    else {
+      _imports.add(importName);
+    }
+
+    _cachedImports = null;
+  }
+
+  /**
+   * Invokes an extension for the specified evaluation.
+   * @param data the evaluation text.
+   */
+  private Object invokeExtension(String data) throws Exception {
+    ExtensionParser parser = new ExtensionParser();
+    Extension extensionData = parser.parse(data);
+
+    if (extensionData == null) {
+      throw new EvaluationError("Invalid syntax.");
+    }
+
+    String name = extensionData.getName();
+    EvaluatorExtension extension = _extensions.get(name);
+    if (extension == null) {
+      throw new EvaluationError("Invalid syntax. Unknown identifier '" + name + "'");
+    }
+
+    return extension.evaluate(this, extensionData.getDeclaration(), extensionData.getContent());
   }
 
   /**
@@ -97,14 +142,24 @@ public final class JavaShell implements Evaluator, SnippetShell {
   }
 
   /**
+   * Registers an extension so it may be invoked.
+   * @param name the name of the extension used in invoking it.
+   * @param extension the extension to be registered.
+   */
+  public void registerExtension(String name, EvaluatorExtension extension) {
+    _extensions.put(name, extension);
+  }
+
+  /**
    * {@link Evaluator}
    */
   @Override
   public Object evaluate(String data, int evaluationID) throws Exception {
-    Object result = null;
+    if (data.startsWith("%")) {
+      return invokeExtension(data);
+    }
 
     Snippet snippet = null;
-
     try {
       SnippetParser parser = new SnippetParser();
       snippet = parser.parse(data, evaluationID);
@@ -123,14 +178,15 @@ public final class JavaShell implements Evaluator, SnippetShell {
 
     SnippetCompiler compiler = new SnippetCompiler(this);
     if (compiler.compile(snippet)) {
+      Object result = null;
+
       if (snippet.getType() == SnippetType.CompilationUnit) {
         // Process the results to record new types, and packages.
         processCompilationUnit(evaluationID, snippet);
-        return null;
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
         // Process the results to execute the code.
-        return processCodeBlock(evaluationID, snippet);
+        result = processCodeBlock(evaluationID, snippet);
       }
 
       return result;
@@ -184,6 +240,7 @@ public final class JavaShell implements Evaluator, SnippetShell {
     return _types;
   }
 
+
   /**
    * A class loader that holds on to classes declared within the shell.
    */
@@ -211,6 +268,7 @@ public final class JavaShell implements Evaluator, SnippetShell {
       return null;
     }
   }
+
 
   /**
    * A class loader that allows loading classes generated during compilation from code blocks
