@@ -5,7 +5,8 @@ package ijava.kernel;
 
 import java.io.*;
 import java.util.*;
-
+import java.*;
+import ijava.EvaluationError;
 import ijava.data.*;
 import ijava.kernel.protocol.*;
 import ijava.kernel.protocol.messages.*;
@@ -83,6 +84,10 @@ public final class SessionWorker implements Runnable {
       System.setIn(new DisabledInputStream());
 
       result = _session.getEvaluator().evaluate(task.getContent(), counter);
+    }
+    catch (EvaluationError e) {
+      System.err.println(e.getMessage());
+      error = e;
     }
     catch (Throwable t) {
       t.printStackTrace();

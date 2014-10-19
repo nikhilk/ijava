@@ -46,35 +46,48 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
   public Object evaluate(String data, int evaluationID) throws Exception {
     Object result = null;
 
+    Snippet snippet = null;
+
     try {
       SnippetParser parser = new SnippetParser();
-      Snippet snippet = parser.parse(data, evaluationID);
+      snippet = parser.parse(data, evaluationID);
+    }
+    catch (SnippetException e) {
+      throw new EvaluationError(e.getMessage(), e);
+    }
 
-      if (snippet.getType() == SnippetType.ClassMembers) {
-        System.err.println("Only full types and statements are supported at this time.");
-        return null;
-      }
+    if (snippet.getType() == SnippetType.ClassMembers) {
+      System.err.println("Only full types and statements are supported at this time.");
+      return null;
+    }
 
-      SnippetRewriter rewriter = new SnippetRewriter(this);
-      rewriter.rewrite(snippet);
+    SnippetRewriter rewriter = new SnippetRewriter(this);
+    rewriter.rewrite(snippet);
 
-      SnippetCompiler compiler = new SnippetCompiler(this);
-      compiler.compile(snippet);
-
+    SnippetCompiler compiler = new SnippetCompiler(this);
+    if (compiler.compile(snippet)) {
       if (snippet.getType() == SnippetType.CompilationUnit) {
         // Process the results to record new types, and packages.
         processCompilationUnit(evaluationID, snippet);
+        return null;
       }
       else if (snippet.getType() == SnippetType.CodeBlock) {
         // Process the results to execute the code.
-        result = processCodeBlock(evaluationID, snippet);
+        return processCodeBlock(evaluationID, snippet);
       }
-    }
-    catch (SnippetException e) {
-      System.err.println(e.getMessage());
-    }
 
-    return result;
+      return result;
+    }
+    else {
+      // Raise an error for compilation errors
+      StringBuilder errorBuilder = new StringBuilder();
+      for (String error : snippet.getCompilation().getErrors()) {
+        errorBuilder.append(error);
+        errorBuilder.append("\n");
+      }
+
+      throw new EvaluationError(errorBuilder.toString());
+    }
   }
 
   /**
@@ -91,6 +104,9 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
 
     Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
     Callable<?> callable = (Callable<?>)snippetClass.newInstance();
+
+    // TODO: Is there some way to rewrite line numbers in stack frames to account for
+    //       generated code around the code block.
 
     return callable.call();
   }

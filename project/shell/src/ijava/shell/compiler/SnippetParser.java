@@ -202,7 +202,8 @@ public final class SnippetParser {
     if (compilationUnit != null) {
       if (compilationUnit.getProblems().length != 0) {
         for (IProblem problem : compilationUnit.getProblems()) {
-          errors.add(problem.getMessage());
+          errors.add(String.format("[%d]: %s",
+                                   problem.getSourceLineNumber(), problem.getMessage()));
         }
       }
     }

@@ -27,7 +27,8 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
   private final INameEnvironment _references;
 
   private final Map<String, byte[]> _types;
-  private final HashSet<String> _packages;
+  private final Set<String> _packages;
+  private final List<String> _errors;
 
   static {
     HashMap<String, String> optionSet = new HashMap<String, String>();
@@ -64,6 +65,7 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
 
     _types = new HashMap<String, byte[]>();
     _packages = new HashSet<String>();
+    _errors = new ArrayList<String>();
   }
 
   /**
@@ -80,12 +82,10 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
 
     _compiler.compile(units);
 
-    // TODO: Handle errors
-
-    SnippetCompilation compilation = new SnippetCompilation(_packages, _types);
+    SnippetCompilation compilation = new SnippetCompilation(_packages, _types, _errors);
     snippet.setCompilation(compilation);
 
-    return true;
+    return _errors.size() == 0;
   }
 
   private NameEnvironmentAnswer lookupType(String name) {
@@ -107,6 +107,20 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
    */
   @Override
   public void acceptResult(CompilationResult result) {
+    if (result.hasProblems()) {
+      for (IProblem problem : result.getProblems()) {
+        if (problem.isError()) {
+          String error = String.format("[%d]: %s",
+                                       problem.getSourceLineNumber(), problem.getMessage());
+          _errors.add(error);
+        }
+      }
+
+      if (_errors.size() != 0) {
+        return;
+      }
+    }
+
     for (ClassFile classFile : result.getClassFiles()) {
       String name = new String(CharOperation.concatWith(classFile.getCompoundName(), '.'));
       _types.put(name, classFile.getBytes());

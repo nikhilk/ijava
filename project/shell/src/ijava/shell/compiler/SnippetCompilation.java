@@ -12,15 +12,26 @@ public final class SnippetCompilation {
 
   private final Set<String> _packages;
   private final Map<String, byte[]> _types;
+  private final List<String> _errors;
 
   /**
    * Initializes a SnippetCompilation instance.
    * @param packages the resulting set of package names (if any).
    * @param types the resulting set of types.
+   * @param errors the resulting set of errors.
    */
-  public SnippetCompilation(Set<String> packages, Map<String, byte[]> types) {
+  public SnippetCompilation(Set<String> packages, Map<String, byte[]> types, List<String> errors) {
     _packages = packages;
     _types = types;
+    _errors = errors;
+  }
+
+  /**
+   * Gets the list of errors resulting from compilation.
+   * @return the list of errors if there were any.
+   */
+  public List<String> getErrors() {
+    return _errors;
   }
 
   /**
