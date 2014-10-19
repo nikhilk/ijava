@@ -105,9 +105,6 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
     Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
     Callable<?> callable = (Callable<?>)snippetClass.newInstance();
 
-    // TODO: Is there some way to rewrite line numbers in stack frames to account for
-    //       generated code around the code block.
-
     return callable.call();
   }
 
@@ -159,10 +156,10 @@ public final class InteractiveShell implements Evaluator, SnippetShell {
       StringBuilder sb = new StringBuilder();
 
       for (String s : _imports) {
-        sb.append(String.format("import %s;\n", s));
+        sb.append(String.format("import %s;", s));
       }
       for (String s : _staticImports) {
-        sb.append(String.format("import static %s;\n", s));
+        sb.append(String.format("import static %s;", s));
       }
 
       _cachedImports = sb.toString();

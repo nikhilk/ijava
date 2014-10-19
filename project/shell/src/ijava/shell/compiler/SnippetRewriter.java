@@ -40,7 +40,6 @@ public final class SnippetRewriter {
     StringBuilder sb = new StringBuilder();
 
     sb.append(_shell.getImports());
-    sb.append('\n');
 
     // Wrap the code block into a call method on a class implementing Callable<Object>.
     // The method body ends with a return statement so there is guaranteed to be a return value.
@@ -50,15 +49,11 @@ public final class SnippetRewriter {
 
     sb.append("public class ");
     sb.append(className);
-    sb.append(" implements java.util.concurrent.Callable<Object> {\n");
-    sb.append("  @Override public Object call() throws Exception {\n");
-    sb.append("    if (true) {\n");
+    sb.append(" implements java.util.concurrent.Callable<Object> { ");
+    sb.append("@Override public Object call() throws Exception { ");
+    sb.append("if (true) { ");
     sb.append(codeBlock);
-    sb.append("\n");
-    sb.append("    }\n");
-    sb.append("    return null;\n");
-    sb.append("  }\n");
-    sb.append("}\n");
+    sb.append(" } return null; }}");
 
     return sb.toString();
   }
