@@ -3,6 +3,9 @@
 
 package ijava.shell.compiler;
 
+import java.util.*;
+import org.eclipse.jdt.core.dom.*;
+
 /**
  * Rewrites snippet code so it is a compilable, well-formed compilation unit.
  */
@@ -27,13 +30,44 @@ public final class SnippetRewriter {
   public void rewrite(Snippet snippet) {
     String rewrittenCode = null;
 
-    if (snippet.getType() == SnippetType.CodeBlock) {
+    if (snippet.getType() == SnippetType.ClassMembers) {
+      rewrittenCode = rewriteClassMembers(snippet.getClassName(), snippet.getClassMembers());
+    }
+    else if (snippet.getType() == SnippetType.CodeBlock) {
       rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
     }
 
-    // TODO: Rewrite compilation units (to add imports) and class members
-
     snippet.setRewrittenCode(rewrittenCode);
+  }
+
+  private String rewriteClassMembers(String className, Map<String, Object> members) {
+    // TODO: Temporary implementation
+    System.out.println("Rewriting class members...");
+    for (Map.Entry<String, Object> memberEntry : members.entrySet()) {
+      if (memberEntry.getValue() instanceof FieldDeclaration) {
+        FieldDeclaration fieldDeclaration = (FieldDeclaration)memberEntry.getValue();
+
+        System.out.println("name: " + memberEntry.getKey());
+        System.out.println("type: " + fieldDeclaration.getType());
+        System.out.print("decl: " + fieldDeclaration.toString());
+      }
+      else {
+        MethodDeclaration methodDeclaration = (MethodDeclaration)memberEntry.getValue();
+        System.out.print(methodDeclaration.toString());
+      }
+      System.out.println();
+    }
+
+    StringBuilder sb = new StringBuilder();
+
+    sb.append(_shell.getImports());
+
+    sb.append("public class ");
+    sb.append(className);
+    sb.append(" { ");
+    sb.append(" }");
+
+    return sb.toString();
   }
 
   private String rewriteCodeBlock(String className, String codeBlock) {

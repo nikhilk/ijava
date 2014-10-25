@@ -3,6 +3,7 @@
 
 package ijava.shell;
 
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
@@ -26,7 +27,7 @@ public final class JavaShell implements Evaluator, SnippetShell {
   private String _cachedImports;
 
   /**
-   * Initializes an instance of an InteractiveShell.
+   * Initializes an instance of an JavaShell.
    */
   public JavaShell() {
     _extensions = new HashMap<String, EvaluatorExtension>();
@@ -42,6 +43,7 @@ public final class JavaShell implements Evaluator, SnippetShell {
     // Import a few packages by default
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
+    addImport("java.net.*", /* staticImport */ false);
 
     // Register a few extensions by default
     registerExtension("import", new JavaExtensions.ImportExtension());
@@ -85,14 +87,27 @@ public final class JavaShell implements Evaluator, SnippetShell {
   }
 
   /**
+   * Process the results of compiling class members.
+   * @param id the ID to use to generate unique names.
+   * @param snippet the compiled snippet.
+   */
+  private void processClassMembers(int id, Snippet snippet) throws Exception {
+    // TODO: Temporary implementation
+    SnippetCompilation compilation = snippet.getCompilation();
+    ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
+
+    Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
+    Object instance = snippetClass.newInstance();
+  }
+
+  /**
    * Process the results of compiling a code block. This involves creating a class loader around
    * the defined class, loading and instantiating that class and executing the code block.
    * @param id the ID to use to generate unique names.
    * @param snippet the compiled snippet.
    * @return the result of the code block execution.
    */
-  private Object processCodeBlock(int id, Snippet snippet)
-      throws Exception {
+  private Object processCodeBlock(int id, Snippet snippet) throws Exception {
     SnippetCompilation compilation = snippet.getCompilation();
     ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
 
@@ -168,11 +183,6 @@ public final class JavaShell implements Evaluator, SnippetShell {
       throw new EvaluationError(e.getMessage(), e);
     }
 
-    if (snippet.getType() == SnippetType.ClassMembers) {
-      System.err.println("Only full types and statements are supported at this time.");
-      return null;
-    }
-
     SnippetRewriter rewriter = new SnippetRewriter(this);
     rewriter.rewrite(snippet);
 
@@ -180,13 +190,16 @@ public final class JavaShell implements Evaluator, SnippetShell {
     if (compiler.compile(snippet)) {
       Object result = null;
 
-      if (snippet.getType() == SnippetType.CompilationUnit) {
-        // Process the results to record new types, and packages.
-        processCompilationUnit(evaluationID, snippet);
-      }
-      else if (snippet.getType() == SnippetType.CodeBlock) {
-        // Process the results to execute the code.
-        result = processCodeBlock(evaluationID, snippet);
+      switch (snippet.getType()) {
+        case CompilationUnit:
+          processCompilationUnit(evaluationID, snippet);
+          break;
+        case ClassMembers:
+          processClassMembers(evaluationID, snippet);
+          break;
+        case CodeBlock:
+          result = processCodeBlock(evaluationID, snippet);
+          break;
       }
 
       return result;
