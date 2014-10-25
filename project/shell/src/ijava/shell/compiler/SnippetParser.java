@@ -121,78 +121,78 @@ public final class SnippetParser {
   @SuppressWarnings("unchecked")
   private Map<String, Object> parseAsClassMembers(String code, List<String> errors) {
     ASTNode ast = parseCode(code, SnippetType.ClassMembers);
-
-    if (ast instanceof TypeDeclaration) {
-      TypeDeclaration typeDeclaration = (TypeDeclaration)ast;
-      Map<String, Object> classMembers = new HashMap<String, Object>();
-
-      List<BodyDeclaration> memberDeclarations = typeDeclaration.bodyDeclarations();
-      for (BodyDeclaration member : memberDeclarations) {
-        switch (member.getNodeType()) {
-          case ASTNode.FIELD_DECLARATION:
-            FieldDeclaration fieldDeclaration = (FieldDeclaration)member;
-            List<VariableDeclarationFragment> fieldDeclarationFragments =
-                fieldDeclaration.fragments();
-
-            if (fieldDeclarationFragments.size() == 1) {
-              VariableDeclarationFragment varDeclaration = fieldDeclarationFragments.get(0);
-              classMembers.put(varDeclaration.getName().getIdentifier(), fieldDeclaration);
-            }
-            else {
-              // Flatten out the list of variables when defined together into a set of
-              // field declarations (1 per variable)
-              for (VariableDeclarationFragment varDeclaration : fieldDeclarationFragments) {
-                // Clone the AST node, as the existing node is already parented to an existing
-                // FieldDeclaration.
-                VariableDeclarationFragment newFragment =
-                    (VariableDeclarationFragment)ASTNode.copySubtree(ast.getAST(), varDeclaration);
-
-                classMembers.put(varDeclaration.getName().getIdentifier(),
-                                 ast.getAST().newFieldDeclaration(newFragment));
-              }
-            }
-
-            break;
-          case ASTNode.METHOD_DECLARATION:
-            MethodDeclaration methodDeclaration = (MethodDeclaration)member;
-            if (methodDeclaration.isConstructor()) {
-              errors.add(SnippetParser.ERROR_CTOR_NOT_SUPPORTED);
-            }
-            else {
-              classMembers.put(methodDeclaration.getName().getIdentifier(), methodDeclaration);
-            }
-            break;
-          case ASTNode.INITIALIZER:
-            Initializer initializer = (Initializer)member;
-            if (((initializer.getModifiers() & Modifier.STATIC) == 0) &&
-                (memberDeclarations.size() == 1)) {
-              // Special case - what looks like a single class initializer should instead be
-              // recognized as a code block.
-              return null;
-            }
-            errors.add(SnippetParser.ERROR_INITIALIZER_NOT_SUPPORTED);
-            break;
-          case ASTNode.TYPE_DECLARATION:
-          case ASTNode.ENUM_DECLARATION:
-          case ASTNode.ANNOTATION_TYPE_DECLARATION:
-            errors.add(SnippetParser.ERROR_NESTED_TYPES_NOT_SUPPORTED);
-            break;
-          case ASTNode.ANNOTATION_TYPE_MEMBER_DECLARATION:
-            errors.add(SnippetParser.ERROR_ANNOTATIONTYPE_MEMBER_NOT_SUPPORTED);
-            break;
-          case ASTNode.ENUM_CONSTANT_DECLARATION:
-            errors.add(SnippetParser.ERROR_ENUM_MEMBER_NOT_SUPPORTED);
-            break;
-          default:
-            errors.add(SnippetParser.ERROR_NOT_SUPPORTED);
-            break;
-        }
-      }
-
-      return classMembers;
+    if (!(ast instanceof TypeDeclaration)) {
+      return null;
     }
 
-    return null;
+    TypeDeclaration typeDeclaration = (TypeDeclaration)ast;
+    Map<String, Object> classMembers = new HashMap<String, Object>();
+
+    List<BodyDeclaration> memberDeclarations = typeDeclaration.bodyDeclarations();
+    for (BodyDeclaration member : memberDeclarations) {
+      switch (member.getNodeType()) {
+        case ASTNode.FIELD_DECLARATION:
+          FieldDeclaration fieldDeclaration = (FieldDeclaration)member;
+          List<VariableDeclarationFragment> fieldDeclarationFragments =
+              fieldDeclaration.fragments();
+
+          if (fieldDeclarationFragments.size() == 1) {
+            // Single variable case. Example: int a = 1
+            VariableDeclarationFragment varDeclaration = fieldDeclarationFragments.get(0);
+            classMembers.put(varDeclaration.getName().getIdentifier(), fieldDeclaration);
+          }
+          else {
+            // Multi-variable case. Example: int a = 1, b = 2
+            // Flatten out the list of variables as if they were declared one at a time
+
+            for (VariableDeclarationFragment varDeclaration : fieldDeclarationFragments) {
+              // Clone the existing node as it is already parented to an existing FieldDeclaration
+              VariableDeclarationFragment newFragment =
+                  (VariableDeclarationFragment)ASTNode.copySubtree(ast.getAST(), varDeclaration);
+
+              classMembers.put(varDeclaration.getName().getIdentifier(),
+                               ast.getAST().newFieldDeclaration(newFragment));
+            }
+          }
+
+          break;
+        case ASTNode.METHOD_DECLARATION:
+          MethodDeclaration methodDeclaration = (MethodDeclaration)member;
+          if (methodDeclaration.isConstructor()) {
+            errors.add(SnippetParser.ERROR_CTOR_NOT_SUPPORTED);
+          }
+          else {
+            classMembers.put(methodDeclaration.getName().getIdentifier(), methodDeclaration);
+          }
+          break;
+        case ASTNode.INITIALIZER:
+          Initializer initializer = (Initializer)member;
+          if (((initializer.getModifiers() & Modifier.STATIC) == 0) &&
+              (memberDeclarations.size() == 1)) {
+            // Special case - what looks like a single class initializer should instead be
+            // recognized as a code block.
+            return null;
+          }
+          errors.add(SnippetParser.ERROR_INITIALIZER_NOT_SUPPORTED);
+          break;
+        case ASTNode.TYPE_DECLARATION:
+        case ASTNode.ENUM_DECLARATION:
+        case ASTNode.ANNOTATION_TYPE_DECLARATION:
+          errors.add(SnippetParser.ERROR_NESTED_TYPES_NOT_SUPPORTED);
+          break;
+        case ASTNode.ANNOTATION_TYPE_MEMBER_DECLARATION:
+          errors.add(SnippetParser.ERROR_ANNOTATIONTYPE_MEMBER_NOT_SUPPORTED);
+          break;
+        case ASTNode.ENUM_CONSTANT_DECLARATION:
+          errors.add(SnippetParser.ERROR_ENUM_MEMBER_NOT_SUPPORTED);
+          break;
+        default:
+          errors.add(SnippetParser.ERROR_NOT_SUPPORTED);
+          break;
+      }
+    }
+
+    return classMembers;
   }
 
   /**
