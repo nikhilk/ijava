@@ -134,10 +134,24 @@ public final class SnippetParser {
             List<VariableDeclarationFragment> fieldDeclarationFragments =
                 fieldDeclaration.fragments();
 
-            for (VariableDeclarationFragment varDeclaration : fieldDeclarationFragments) {
-              classMembers.put(varDeclaration.getName().getIdentifier(),
-                               varDeclaration.getInitializer());
+            if (fieldDeclarationFragments.size() == 1) {
+              VariableDeclarationFragment varDeclaration = fieldDeclarationFragments.get(0);
+              classMembers.put(varDeclaration.getName().getIdentifier(), fieldDeclaration);
             }
+            else {
+              // Flatten out the list of variables when defined together into a set of
+              // field declarations (1 per variable)
+              for (VariableDeclarationFragment varDeclaration : fieldDeclarationFragments) {
+                // Clone the AST node, as the existing node is already parented to an existing
+                // FieldDeclaration.
+                VariableDeclarationFragment newFragment =
+                    (VariableDeclarationFragment)ASTNode.copySubtree(ast.getAST(), varDeclaration);
+
+                classMembers.put(varDeclaration.getName().getIdentifier(),
+                                 ast.getAST().newFieldDeclaration(newFragment));
+              }
+            }
+
             break;
           case ASTNode.METHOD_DECLARATION:
             MethodDeclaration methodDeclaration = (MethodDeclaration)member;
