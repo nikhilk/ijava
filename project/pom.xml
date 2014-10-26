@@ -11,8 +11,8 @@
 
   <modules>
     <module>api</module>
-    <module>shell</module>
-    <module>kernel</module>
+    <module>core</module>
+    <module>app</module>
   </modules>
 
   <properties>

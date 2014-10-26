@@ -9,7 +9,7 @@
     <version>0.1</version>
   </parent>
   <groupId>net.nikhilk.ijava</groupId>
-  <artifactId>kernel</artifactId>
+  <artifactId>app</artifactId>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -68,23 +68,8 @@
   </build>
   <dependencies>
     <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.zeromq</groupId>
-      <artifactId>jeromq</artifactId>
-      <version>0.3.4</version>
-    </dependency>
-    <dependency>
       <groupId>net.nikhilk.ijava</groupId>
-      <artifactId>shell</artifactId>
-      <version>0.1</version>
-    </dependency>
-    <dependency>
-      <groupId>net.nikhilk.ijava</groupId>
-      <artifactId>api</artifactId>
+      <artifactId>core</artifactId>
       <version>0.1</version>
     </dependency>
   </dependencies>
