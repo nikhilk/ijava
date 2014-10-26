@@ -9,7 +9,6 @@ import java.util.concurrent.*;
 import ijava.*;
 import ijava.shell.compiler.*;
 import ijava.shell.extensions.*;
-import ijava.shell.util.*;
 
 /**
  * Provides the interactive shell or REPL functionality for Java.
@@ -135,7 +134,7 @@ public final class JavaShell implements Evaluator {
    */
   private Object processCode(int id, Snippet snippet) throws Exception {
     SnippetCompilation compilation = snippet.getCompilation();
-    ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
+    ClassLoader classLoader = new CodeClassLoader(_classLoader, id, compilation.getTypes());
 
     Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
     Object instance = snippetClass.newInstance();
@@ -314,7 +313,7 @@ public final class JavaShell implements Evaluator {
   /**
    * A class loader that holds on to classes declared within the shell.
    */
-  private final class ShellClassLoader extends ByteCodeClassLoader {
+  private final class ShellClassLoader extends JavaByteCodeLoader {
 
     private final HashSet<String> _names;
 
@@ -344,7 +343,7 @@ public final class JavaShell implements Evaluator {
    * A class loader that allows loading classes generated during compilation from code blocks
    * entered into the shell, while that code is being executed.
    */
-  private final class CodeBlockClassLoader extends ByteCodeClassLoader {
+  private final class CodeClassLoader extends JavaByteCodeLoader {
 
     private final Map<String, byte[]> _types;
 
@@ -354,8 +353,8 @@ public final class JavaShell implements Evaluator {
      * @param id the ID of this class loader.
      * @param types the set of byte code buffers for types keyed by class names.
      */
-    public CodeBlockClassLoader(ClassLoader parentClassLoader, int id,
-                                Map<String, byte[]> types) {
+    public CodeClassLoader(ClassLoader parentClassLoader, int id,
+                           Map<String, byte[]> types) {
       super(parentClassLoader, id);
       _types = types;
     }

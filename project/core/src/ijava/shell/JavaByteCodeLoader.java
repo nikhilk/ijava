@@ -1,14 +1,14 @@
-// ByteCodeClassLoader.java
+// JavaByteCodeLoader.java
 //
 
-package ijava.shell.util;
+package ijava.shell;
 
 import java.util.*;
 
 /**
  * Base class for class loaders that load classes from in-memory byte arrays.
  */
-public abstract class ByteCodeClassLoader extends ClassLoader {
+public abstract class JavaByteCodeLoader extends ClassLoader {
 
   private final int _id;
   private final HashMap<String, Class<?>> _loadedClasses;
@@ -18,7 +18,7 @@ public abstract class ByteCodeClassLoader extends ClassLoader {
    * @param parentClassLoader the parent class loader to chain with.
    * @param id the ID of this class loader.
    */
-  protected ByteCodeClassLoader(ClassLoader parentClassLoader, int id) {
+  protected JavaByteCodeLoader(ClassLoader parentClassLoader, int id) {
     super(parentClassLoader);
     _id = id;
     _loadedClasses = new HashMap<String, Class<?>>();
