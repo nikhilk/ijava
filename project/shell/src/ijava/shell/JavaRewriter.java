@@ -44,19 +44,16 @@ public final class JavaRewriter {
 
   private String rewriteClassMembers(String className, String code,
                                      List<SnippetCodeMember> members) {
-    // TODO: Temporary implementation
-    for (SnippetCodeMember member: members) {
-      System.out.println("name: " + member.getName());
-
-      if (member.isField()) {
-        System.out.println("type: " + member.getType());
-      }
-      else {
-        System.out.println("type: " + member.getCode());
-      }
-      System.out.println();
-    }
-    System.out.println("---");
+    // The rewritten code is a class that can be compiled and executed.
+    // - It contains an inner class called __Code that contains the class members
+    //   being declared.
+    // - The generated class implements Callable, and the implementation of Call
+    //   instantiates and returns an instance of the inner __Code class.
+    // - The generated class also contains all fields and methods being tracked
+    //   within the shell so they are accessible to the new class members.
+    // - The new code is placed in an inner class, so that the outer class can be
+    //   instantiated and initialized with previous state for field values, before
+    //   the inner class is instantiated and new code within it is executed.
 
     StringBuilder sb = new StringBuilder();
 
@@ -65,35 +62,41 @@ public final class JavaRewriter {
     sb.append("public class ");
     sb.append(className);
     sb.append(" implements java.util.concurrent.Callable<Object> {");
-    sb.append(" @Override public Object call() throws Exception { return new Delta(); } ");
-    sb.append(" public class Delta { ");
+    sb.append(" public class __Inner { ");
     sb.append(code);
-    sb.append(" }}");
+    sb.append(" }\n\n");
+    sb.append(_shell.getState().getCode());
+    sb.append("  @Override public Object call() throws Exception {\n");
+    sb.append("    return new __Inner();\n");
+    sb.append("  }\n");
+    sb.append("}");
 
-    String rewrittenCode = sb.toString();
-    System.out.println(rewrittenCode);
-
-    return rewrittenCode;
+    return sb.toString();
   }
 
   private String rewriteCodeBlock(String className, String codeBlock) {
+    // The rewritten code is a class that can be compiled and executed.
+    // - The class implements Callable, and includes user code as the implementation of Call.
+    // - The return value is either the result of a return statement, or a fallback null
+    //   value (so there is a guaranteed return statement within the Call method body.
+    // - The user code is wrapped in an if (true) block, so that the if the user code has
+    //   a throw statement, the generated return null statement doesn't trigger a compiler
+    //   error about being unreachable.
+    // - The class also contains declarations for all fields and methods being tracked
+    //   within the shell, so they are accessible to the new code block.
+
     StringBuilder sb = new StringBuilder();
 
     sb.append(_shell.getImports());
-
-    // Wrap the code block into a call method on a class implementing Callable<Object>.
-    // The method body ends with a return statement so there is guaranteed to be a return value.
-    //
-    // The code block is also placed within an if (true) { ... } so that the added return
-    // statement doesn't result in a compile error about unreachable code.
-
     sb.append("public class ");
     sb.append(className);
     sb.append(" implements java.util.concurrent.Callable<Object> { ");
-    sb.append("@Override public Object call() throws Exception { ");
+    sb.append(" @Override public Object call() throws Exception { ");
     sb.append("if (true) { ");
     sb.append(codeBlock);
-    sb.append(" } return null; }}");
+    sb.append(" } return null; }\n\n");
+    sb.append(_shell.getState().getCode());
+    sb.append("}");
 
     return sb.toString();
   }

@@ -3,6 +3,7 @@
 
 package ijava.shell;
 
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
@@ -13,7 +14,12 @@ import ijava.shell.util.*;
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public final class JavaShell implements Evaluator, SnippetShell {
+public final class JavaShell implements Evaluator {
+
+  private final static String ERROR_TYPE_REDECLARED =
+      "The value of the variable '%s' of type '%s' is no longer valid. " +
+          "It appears the type of that variable has been redeclared to '%s'. " +
+          "Please re-run the code to initialize the variable again.";
 
   private final HashMap<String, EvaluatorExtension> _extensions;
 
@@ -21,6 +27,8 @@ public final class JavaShell implements Evaluator, SnippetShell {
   private final HashSet<String> _staticImports;
   private final HashSet<String> _packages;
   private final HashMap<String, byte[]> _types;
+
+  private final JavaShellState _state;
 
   private ClassLoader _classLoader;
   private String _cachedImports;
@@ -36,6 +44,9 @@ public final class JavaShell implements Evaluator, SnippetShell {
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
 
+    // The state resulting from executing code
+    _state = new JavaShellState();
+
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
 
@@ -46,6 +57,35 @@ public final class JavaShell implements Evaluator, SnippetShell {
 
     // Register a few extensions by default
     registerExtension("import", new JavaExtensions.ImportExtension());
+  }
+
+  /**
+   * The set of imports declared in the shell.
+   * @return the list of imports.
+   */
+  public String getImports() {
+    if (_cachedImports == null) {
+      StringBuilder sb = new StringBuilder();
+
+      for (String s : _imports) {
+        sb.append(String.format("import %s;", s));
+      }
+      for (String s : _staticImports) {
+        sb.append(String.format("import static %s;", s));
+      }
+
+      _cachedImports = sb.toString();
+    }
+
+    return _cachedImports;
+  }
+
+  /**
+   * Gets the current set of variables declared in the shell.
+   * @return a set of name/value pairs.
+   */
+  public JavaShellState getState() {
+    return _state;
   }
 
   /**
@@ -86,34 +126,91 @@ public final class JavaShell implements Evaluator, SnippetShell {
   }
 
   /**
-   * Process the results of compiling class members.
+   * Process the results of compiling a set of class members or a code block, i.e. restore old
+   * shell state, execute new code, and then update shell state with resulting updates.
    * @param id the ID to use to generate unique names.
    * @param snippet the compiled snippet.
+   * @return the result of a code block execution, or null for class members execution or if there
+   *         is an error.
    */
-  private void processClassMembers(int id, Snippet snippet) throws Exception {
-    // TODO: Temporary implementation
+  private Object processCode(int id, Snippet snippet) throws Exception {
     SnippetCompilation compilation = snippet.getCompilation();
     ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
 
     Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
-    snippetClass.newInstance();
-  }
+    Object instance = snippetClass.newInstance();
 
-  /**
-   * Process the results of compiling a code block. This involves creating a class loader around
-   * the defined class, loading and instantiating that class and executing the code block.
-   * @param id the ID to use to generate unique names.
-   * @param snippet the compiled snippet.
-   * @return the result of the code block execution.
-   */
-  private Object processCodeBlock(int id, Snippet snippet) throws Exception {
-    SnippetCompilation compilation = snippet.getCompilation();
-    ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
+    // Initialize the callable code instance with any current state
+    boolean staleState = false;
+    for (String variable: _state.getNames()) {
+      Field field = snippetClass.getDeclaredField(variable);
+      Object value = _state.getValue(variable);
 
-    Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
-    Callable<?> callable = (Callable<?>)snippetClass.newInstance();
+      try {
+        field.set(instance, value);
+      }
+      catch (IllegalArgumentException e) {
+        _state.undeclareField(variable);
+        staleState = true;
 
-    return callable.call();
+        String error = String.format(JavaShell.ERROR_TYPE_REDECLARED,
+                                     variable,
+                                     value.getClass().toString(),
+                                     field.getClass().toString());
+        System.err.println(error);
+      }
+    }
+
+    if (staleState) {
+      // Old state is stale, and the new instance was not fully initialized. So simply
+      // bail out, rather than run with un-predictable results.
+      return null;
+    }
+
+    // Execute the code
+    Object result = ((Callable<?>)instance).call();
+
+    if (snippet.getType() == SnippetType.ClassMembers) {
+      // If the snippet represented a set of class members, then add any declared fields
+      // to be tracked in state
+
+      for (SnippetCodeMember member: snippet.getClassMembers()) {
+        if (member.isField()) {
+          _state.declareField(member.getName(), member.getType());
+        }
+        else {
+          _state.declareMethod(member.getName(), member.getCode());
+        }
+      }
+
+      // The result of execution is the instance to be used to retrieve updated state.
+      // This is because the rewriter puts new class members declared in a nested class
+      // that is instantiated and returned when call() is invoked.
+      instance = result;
+    }
+
+    // Now extract any new/updated state to be tracked for use in future evaluations.
+    Class<?> instanceClass = instance.getClass();
+    for (String name: _state.getNames()) {
+      try {
+        Field field = instanceClass.getDeclaredField(name);
+        field.setAccessible(true);
+
+        _state.setValue(name, field.get(instance));
+      }
+      catch (NoSuchFieldException e) {
+        // Ignore. This particular field was not declared or updated in the case of
+        // a set of class members.
+      }
+    }
+
+    if (snippet.getType() == SnippetType.ClassMembers) {
+      // For class members, the result is simply a shim class containing the newly defined
+      // members, i.e. not meaningful to return out of the shell.
+      return null;
+    }
+
+    return result;
   }
 
   /**
@@ -185,23 +282,18 @@ public final class JavaShell implements Evaluator, SnippetShell {
     JavaRewriter rewriter = new JavaRewriter(this);
     snippet.setRewrittenCode(rewriter.rewrite(snippet));
 
-    SnippetCompiler compiler = new SnippetCompiler(this);
+    SnippetCompiler compiler = new SnippetCompiler(_packages, _types);
     SnippetCompilation compilation = compiler.compile(snippet);
 
     if (!compilation.hasErrors()) {
       snippet.setCompilation(compilation);
 
       Object result = null;
-      switch (snippet.getType()) {
-        case CompilationUnit:
-          processCompilationUnit(evaluationID, snippet);
-          break;
-        case ClassMembers:
-          processClassMembers(evaluationID, snippet);
-          break;
-        case CodeBlock:
-          result = processCodeBlock(evaluationID, snippet);
-          break;
+      if (snippet.getType() == SnippetType.CompilationUnit) {
+        processCompilationUnit(evaluationID, snippet);
+      }
+      else {
+        result = processCode(evaluationID, snippet);
       }
 
       return result;
@@ -209,50 +301,13 @@ public final class JavaShell implements Evaluator, SnippetShell {
     else {
       // Raise an error for compilation errors
       StringBuilder errorBuilder = new StringBuilder();
-      for (String error : snippet.getCompilation().getErrors()) {
+      for (String error : compilation.getErrors()) {
         errorBuilder.append(error);
         errorBuilder.append("\n");
       }
 
       throw new EvaluationError(errorBuilder.toString());
     }
-  }
-
-  /**
-   * {@link SnippetShell}
-   */
-  @Override
-  public String getImports() {
-    if (_cachedImports == null) {
-      StringBuilder sb = new StringBuilder();
-
-      for (String s : _imports) {
-        sb.append(String.format("import %s;", s));
-      }
-      for (String s : _staticImports) {
-        sb.append(String.format("import static %s;", s));
-      }
-
-      _cachedImports = sb.toString();
-    }
-
-    return _cachedImports;
-  }
-
-  /**
-   * {@link SnippetShell}
-   */
-  @Override
-  public Set<String> getPackages() {
-    return _packages;
-  }
-
-  /**
-   * {@link SnippetShell}
-   */
-  @Override
-  public Map<String, byte[]> getTypes() {
-    return _types;
   }
 
 

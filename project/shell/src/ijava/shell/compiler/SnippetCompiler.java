@@ -21,7 +21,8 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
   private final static CompilerOptions Options;
   private final static String RuntimePath;
 
-  private final SnippetShell _shell;
+  private final Set<String> _definedPackages;
+  private final Map<String, byte[]> _definedTypes;
 
   private final Compiler _compiler;
   private final INameEnvironment _references;
@@ -46,10 +47,12 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
   /**
    * Initializes an instance of a SnippetCompiler with the shell that is performing the
    * compilation.
-   * @param shell the shell performing the compilation.
+   * @param packages the set of previously defined packages.
+   * @param types the set of previously defined types.
    */
-  public SnippetCompiler(SnippetShell shell) {
-    _shell = shell;
+  public SnippetCompiler(Set<String> packages, Map<String, byte[]> types) {
+    _definedPackages = packages;
+    _definedTypes = types;
 
     String[] paths = new String[] { SnippetCompiler.RuntimePath };
     _references = new FileSystem(paths, null, "UTF-8");
@@ -85,7 +88,7 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
   }
 
   private NameEnvironmentAnswer lookupType(String name) {
-    byte[] bytes = _shell.getTypes().get(name);
+    byte[] bytes = _definedTypes.get(name);
     if (bytes != null) {
       try {
         ClassFileReader classReader = new ClassFileReader(bytes, null);
@@ -173,7 +176,7 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
   @Override
   public boolean isPackage(char[][] parentPackageName, char[] packgeName) {
     String name = new String(CharOperation.concatWith(parentPackageName, packgeName, '.'));
-    if (_shell.getPackages().contains(name)) {
+    if (_definedPackages.contains(name)) {
       return true;
     }
 
