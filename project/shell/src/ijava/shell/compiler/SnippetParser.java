@@ -55,7 +55,7 @@ public final class SnippetParser {
 
     // If that didn't work, next attempt to parse the code as the body of a class, i.e. a set of
     // class members.
-    Map<String, Object> classMembers = parseAsClassMembers(code, errors);
+    List<SnippetCodeMember> classMembers = parseAsClassMembers(code, errors);
     if (classMembers != null) {
       if (errors.size() != 0) {
         throw new SnippetException(errors);
@@ -119,40 +119,30 @@ public final class SnippetParser {
    *   this code block could not be parsed as a compilation unit.
    */
   @SuppressWarnings("unchecked")
-  private Map<String, Object> parseAsClassMembers(String code, List<String> errors) {
+  private List<SnippetCodeMember> parseAsClassMembers(String code, List<String> errors) {
     ASTNode ast = parseCode(code, SnippetType.ClassMembers);
     if (!(ast instanceof TypeDeclaration)) {
       return null;
     }
 
     TypeDeclaration typeDeclaration = (TypeDeclaration)ast;
-    Map<String, Object> classMembers = new HashMap<String, Object>();
+    List<SnippetCodeMember> classMembers = new ArrayList<SnippetCodeMember>();
 
     List<BodyDeclaration> memberDeclarations = typeDeclaration.bodyDeclarations();
     for (BodyDeclaration member : memberDeclarations) {
       switch (member.getNodeType()) {
         case ASTNode.FIELD_DECLARATION:
           FieldDeclaration fieldDeclaration = (FieldDeclaration)member;
+          String type = fieldDeclaration.getType().toString();
+
           List<VariableDeclarationFragment> fieldDeclarationFragments =
               fieldDeclaration.fragments();
+          for (Object fragment: fieldDeclaration.fragments()) {
+            VariableDeclarationFragment varDeclaration = (VariableDeclarationFragment)fragment;
+            SnippetCodeMember fieldMember =
+                SnippetCodeMember.createField(varDeclaration.getName().getIdentifier(), type);
 
-          if (fieldDeclarationFragments.size() == 1) {
-            // Single variable case. Example: int a = 1
-            VariableDeclarationFragment varDeclaration = fieldDeclarationFragments.get(0);
-            classMembers.put(varDeclaration.getName().getIdentifier(), fieldDeclaration);
-          }
-          else {
-            // Multi-variable case. Example: int a = 1, b = 2
-            // Flatten out the list of variables as if they were declared one at a time
-
-            for (VariableDeclarationFragment varDeclaration : fieldDeclarationFragments) {
-              // Clone the existing node as it is already parented to an existing FieldDeclaration
-              VariableDeclarationFragment newFragment =
-                  (VariableDeclarationFragment)ASTNode.copySubtree(ast.getAST(), varDeclaration);
-
-              classMembers.put(varDeclaration.getName().getIdentifier(),
-                               ast.getAST().newFieldDeclaration(newFragment));
-            }
+            classMembers.add(fieldMember);
           }
 
           break;
@@ -162,7 +152,10 @@ public final class SnippetParser {
             errors.add(SnippetParser.ERROR_CTOR_NOT_SUPPORTED);
           }
           else {
-            classMembers.put(methodDeclaration.getName().getIdentifier(), methodDeclaration);
+            SnippetCodeMember methodMember =
+                SnippetCodeMember.createMethod(methodDeclaration.getName().getIdentifier(),
+                                               methodDeclaration.toString());
+            classMembers.add(methodMember);
           }
           break;
         case ASTNode.INITIALIZER:

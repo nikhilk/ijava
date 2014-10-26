@@ -23,7 +23,8 @@ public final class SnippetParserClassMembersTests {
     Assert.assertEquals(SnippetType.ClassMembers, snippet.getType());
     Assert.assertEquals(snippet.getClassName(), "__Class1__");
     Assert.assertEquals(1, snippet.getClassMembers().size());
-    Assert.assertTrue(snippet.getClassMembers().containsKey("i"));
+    Assert.assertEquals("i", snippet.getClassMembers().get(0).getName());
+    Assert.assertTrue(snippet.getClassMembers().get(0).isField());
   }
 
   @Test
@@ -41,7 +42,8 @@ public final class SnippetParserClassMembersTests {
 
     Assert.assertEquals(SnippetType.ClassMembers, snippet.getType());
     Assert.assertEquals(1, snippet.getClassMembers().size());
-    Assert.assertTrue(snippet.getClassMembers().containsKey("doSomething"));
+    Assert.assertEquals("doSomething", snippet.getClassMembers().get(0).getName());
+    Assert.assertTrue(snippet.getClassMembers().get(0).isMethod());
   }
 
   @Test
@@ -59,9 +61,9 @@ public final class SnippetParserClassMembersTests {
 
     Assert.assertEquals(SnippetType.ClassMembers, snippet.getType());
     Assert.assertEquals(3, snippet.getClassMembers().size());
-    Assert.assertTrue(snippet.getClassMembers().containsKey("i"));
-    Assert.assertTrue(snippet.getClassMembers().containsKey("j"));
-    Assert.assertTrue(snippet.getClassMembers().containsKey("k"));
+    Assert.assertEquals("i", snippet.getClassMembers().get(0).getName());
+    Assert.assertEquals("j", snippet.getClassMembers().get(1).getName());
+    Assert.assertEquals("k", snippet.getClassMembers().get(2).getName());
   }
 
   @Test
@@ -81,8 +83,11 @@ public final class SnippetParserClassMembersTests {
 
     Assert.assertEquals(SnippetType.ClassMembers, snippet.getType());
     Assert.assertEquals(3, snippet.getClassMembers().size());
-    Assert.assertTrue(snippet.getClassMembers().containsKey("doSomething"));
-    Assert.assertTrue(snippet.getClassMembers().containsKey("implementation"));
-    Assert.assertTrue(snippet.getClassMembers().containsKey("_data"));
+    Assert.assertEquals("doSomething", snippet.getClassMembers().get(0).getName());
+    Assert.assertEquals("implementation", snippet.getClassMembers().get(1).getName());
+    Assert.assertEquals("_data", snippet.getClassMembers().get(2).getName());
+    Assert.assertTrue(snippet.getClassMembers().get(0).isMethod());
+    Assert.assertTrue(snippet.getClassMembers().get(1).isMethod());
+    Assert.assertTrue(snippet.getClassMembers().get(2).isField());
   }
 }

@@ -14,7 +14,7 @@ public final class Snippet {
   private final String _code;
   private final String _className;
 
-  private Map<String, Object> _classMembers;
+  private List<SnippetCodeMember> _members;
 
   private String _rewrittenCode;
   private SnippetCompilation _compilation;
@@ -39,9 +39,9 @@ public final class Snippet {
    * @return a Snippet object.
    */
   public static Snippet classMembers(String code, String className,
-                                     Map<String, Object> classMembers) {
+                                     List<SnippetCodeMember> members) {
     Snippet snippet = new Snippet(SnippetType.ClassMembers, code, className);
-    snippet._classMembers = classMembers;
+    snippet._members = members;
 
     return snippet;
   }
@@ -71,9 +71,9 @@ public final class Snippet {
    * class members.
    * @return the list of member names.
    */
-  public Map<String, Object> getClassMembers() {
+  public List<SnippetCodeMember> getClassMembers() {
     assert _type == SnippetType.ClassMembers : "Only applicable to CompilationUnit snippets.";
-    return _classMembers;
+    return _members;
   }
 
   /**

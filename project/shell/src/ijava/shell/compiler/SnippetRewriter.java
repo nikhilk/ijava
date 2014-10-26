@@ -4,7 +4,6 @@
 package ijava.shell.compiler;
 
 import java.util.*;
-import org.eclipse.jdt.core.dom.*;
 
 /**
  * Rewrites snippet code so it is a compilable, well-formed compilation unit.
@@ -31,7 +30,9 @@ public final class SnippetRewriter {
     String rewrittenCode = null;
 
     if (snippet.getType() == SnippetType.ClassMembers) {
-      rewrittenCode = rewriteClassMembers(snippet.getClassName(), snippet.getClassMembers());
+      rewrittenCode = rewriteClassMembers(snippet.getClassName(),
+                                          snippet.getCode(),
+                                          snippet.getClassMembers());
     }
     else if (snippet.getType() == SnippetType.CodeBlock) {
       rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
@@ -40,23 +41,21 @@ public final class SnippetRewriter {
     snippet.setRewrittenCode(rewrittenCode);
   }
 
-  private String rewriteClassMembers(String className, Map<String, Object> members) {
+  private String rewriteClassMembers(String className, String code,
+                                     List<SnippetCodeMember> members) {
     // TODO: Temporary implementation
-    System.out.println("Rewriting class members...");
-    for (Map.Entry<String, Object> memberEntry : members.entrySet()) {
-      if (memberEntry.getValue() instanceof FieldDeclaration) {
-        FieldDeclaration fieldDeclaration = (FieldDeclaration)memberEntry.getValue();
+    for (SnippetCodeMember member: members) {
+      System.out.println("name: " + member.getName());
 
-        System.out.println("name: " + memberEntry.getKey());
-        System.out.println("type: " + fieldDeclaration.getType());
-        System.out.print("decl: " + fieldDeclaration.toString());
+      if (member.isField()) {
+        System.out.println("type: " + member.getType());
       }
       else {
-        MethodDeclaration methodDeclaration = (MethodDeclaration)memberEntry.getValue();
-        System.out.print(methodDeclaration.toString());
+        System.out.println("type: " + member.getCode());
       }
       System.out.println();
     }
+    System.out.println("---");
 
     StringBuilder sb = new StringBuilder();
 
@@ -64,10 +63,16 @@ public final class SnippetRewriter {
 
     sb.append("public class ");
     sb.append(className);
-    sb.append(" { ");
-    sb.append(" }");
+    sb.append(" implements java.util.concurrent.Callable<Object> {");
+    sb.append(" @Override public Object call() throws Exception { return new Delta(); } ");
+    sb.append(" public class Delta { ");
+    sb.append(code);
+    sb.append(" }}");
 
-    return sb.toString();
+    String rewrittenCode = sb.toString();
+    System.out.println(rewrittenCode);
+
+    return rewrittenCode;
   }
 
   private String rewriteCodeBlock(String className, String codeBlock) {
