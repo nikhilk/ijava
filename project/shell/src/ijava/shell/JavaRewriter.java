@@ -1,23 +1,24 @@
-// SnippetRewriter.java
+// JavaRewriter.java
 //
 
-package ijava.shell.compiler;
+package ijava.shell;
 
 import java.util.*;
+import ijava.shell.compiler.*;
 
 /**
  * Rewrites snippet code so it is a compilable, well-formed compilation unit.
  */
-public final class SnippetRewriter {
+public final class JavaRewriter {
 
-  private final SnippetShell _shell;
+  private final JavaShell _shell;
 
   /**
    * Initializes an instance of a SnippetRewriter with the shell that is performing the
    * rewriting.
    * @param shell the shell performing the rewriting.
    */
-  public SnippetRewriter(SnippetShell shell) {
+  public JavaRewriter(JavaShell shell) {
     _shell = shell;
   }
 
@@ -26,7 +27,7 @@ public final class SnippetRewriter {
    * @param snippet the snippet to be rewritten.
    * @return the rewritten snippet code.
    */
-  public void rewrite(Snippet snippet) {
+  public String rewrite(Snippet snippet) {
     String rewrittenCode = null;
 
     if (snippet.getType() == SnippetType.ClassMembers) {
@@ -38,7 +39,7 @@ public final class SnippetRewriter {
       rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
     }
 
-    snippet.setRewrittenCode(rewrittenCode);
+    return rewrittenCode;
   }
 
   private String rewriteClassMembers(String className, String code,

@@ -3,7 +3,6 @@
 
 package ijava.shell;
 
-import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
@@ -183,8 +182,8 @@ public final class JavaShell implements Evaluator, SnippetShell {
       throw new EvaluationError(e.getMessage(), e);
     }
 
-    SnippetRewriter rewriter = new SnippetRewriter(this);
-    rewriter.rewrite(snippet);
+    JavaRewriter rewriter = new JavaRewriter(this);
+    snippet.setRewrittenCode(rewriter.rewrite(snippet));
 
     SnippetCompiler compiler = new SnippetCompiler(this);
     if (compiler.compile(snippet)) {
