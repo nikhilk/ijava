@@ -5,8 +5,7 @@ package ijava.kernel;
 
 import java.io.*;
 import java.util.*;
-import java.*;
-import ijava.EvaluationError;
+import ijava.*;
 import ijava.data.*;
 import ijava.kernel.protocol.*;
 import ijava.kernel.protocol.messages.*;

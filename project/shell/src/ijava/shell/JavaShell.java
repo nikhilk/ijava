@@ -96,7 +96,7 @@ public final class JavaShell implements Evaluator, SnippetShell {
     ClassLoader classLoader = new CodeBlockClassLoader(_classLoader, id, compilation.getTypes());
 
     Class<?> snippetClass = classLoader.loadClass(snippet.getClassName());
-    Object instance = snippetClass.newInstance();
+    snippetClass.newInstance();
   }
 
   /**

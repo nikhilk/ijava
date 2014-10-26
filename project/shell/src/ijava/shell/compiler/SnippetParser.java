@@ -135,8 +135,6 @@ public final class SnippetParser {
           FieldDeclaration fieldDeclaration = (FieldDeclaration)member;
           String type = fieldDeclaration.getType().toString();
 
-          List<VariableDeclarationFragment> fieldDeclarationFragments =
-              fieldDeclaration.fragments();
           for (Object fragment: fieldDeclaration.fragments()) {
             VariableDeclarationFragment varDeclaration = (VariableDeclarationFragment)fragment;
             SnippetCodeMember fieldMember =
