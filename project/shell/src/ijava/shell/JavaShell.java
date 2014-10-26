@@ -186,9 +186,12 @@ public final class JavaShell implements Evaluator, SnippetShell {
     snippet.setRewrittenCode(rewriter.rewrite(snippet));
 
     SnippetCompiler compiler = new SnippetCompiler(this);
-    if (compiler.compile(snippet)) {
-      Object result = null;
+    SnippetCompilation compilation = compiler.compile(snippet);
 
+    if (!compilation.hasErrors()) {
+      snippet.setCompilation(compilation);
+
+      Object result = null;
       switch (snippet.getType()) {
         case CompilationUnit:
           processCompilationUnit(evaluationID, snippet);

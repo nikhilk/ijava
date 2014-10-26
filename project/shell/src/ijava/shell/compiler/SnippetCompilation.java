@@ -49,4 +49,12 @@ public final class SnippetCompilation {
   public Set<String> getPackages() {
     return _packages;
   }
+
+  /**
+   * Gets whether there are any errors as a result of compilation.
+   * @return true if there was an error; false otherwise.
+   */
+  public boolean hasErrors() {
+    return (_errors != null) && (_errors.size() != 0);
+  }
 }

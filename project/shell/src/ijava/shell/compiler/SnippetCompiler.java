@@ -71,9 +71,9 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
   /**
    * Compiles the specified snippet.
    * @param snippet the snippet to compile.
-   * @return whether the compilation succeeded.
+   * @return the resulting SnippetCompilation object.
    */
-  public boolean compile(Snippet snippet) {
+  public SnippetCompilation compile(Snippet snippet) {
     ICompilationUnit[] units = new ICompilationUnit[] {
       new CompilationUnit(snippet.getRewrittenCode().toCharArray(),
                           snippet.getClassName() + ".java",
@@ -81,11 +81,7 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
     };
 
     _compiler.compile(units);
-
-    SnippetCompilation compilation = new SnippetCompilation(_packages, _types, _errors);
-    snippet.setCompilation(compilation);
-
-    return _errors.size() == 0;
+    return new SnippetCompilation(_packages, _types, _errors);
   }
 
   private NameEnvironmentAnswer lookupType(String name) {
