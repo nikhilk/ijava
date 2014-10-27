@@ -3,6 +3,8 @@
 
 package ijava.kernel.protocol;
 
+import java.util.*;
+
 /**
  * Routes a message that needs to be sent to the kernel client.
  */
@@ -12,6 +14,13 @@ public interface MessageServices {
    * Ends the current session, and shuts down the process.
    */
   public void endSession();
+
+  /**
+   * Formats an object into its display data representation.
+   * @param data the data to be formatted.
+   * @return the display representation of the data keyed by mime types.
+   */
+  public Map<String, String> formatDisplayData(Object data);
 
   /**
    * Processes the specified task within the session from input via the specified message.

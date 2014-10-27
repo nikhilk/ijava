@@ -6,7 +6,6 @@ package ijava.kernel;
 import java.io.*;
 import java.util.*;
 import ijava.*;
-import ijava.data.*;
 import ijava.kernel.protocol.*;
 import ijava.kernel.protocol.messages.*;
 
@@ -103,8 +102,8 @@ public final class SessionWorker implements Runnable {
     }
 
     // Send a message to display the result, if there was any.
-    DisplayData data = DisplayData.create(result);
-    if (data != null) {
+    if (result != null) {
+      Map<String, String> data = _session.formatDisplayData(result);
       Output.DataMessage dataMessage =
           new Output.DataMessage(parentMessage.getIdentity(), parentMessage.getHeader(), data);
       _session.sendMessage(dataMessage.associateChannel(MessageChannel.Output));

@@ -8,7 +8,7 @@ import java.util.*;
 /**
  * Represents HTML markup display data.
  */
-public final class StaticHTML implements Displayable {
+public final class StaticHTML {
 
   private final String _markup;
 
@@ -29,10 +29,10 @@ public final class StaticHTML implements Displayable {
   }
 
   /**
-   * {@link DisplayData}
+   * Generates a mime representation of this object.
+   * @return a text/html representation of this object.
    */
-  @Override
-  public Map<String, String> toDisplayData() {
+  public Map<String, String> toMimeRepresentation() {
     HashMap<String, String> representations = new HashMap<String, String>();
     representations.put("text/html", _markup);
 

@@ -3,6 +3,7 @@
 
 package ijava.kernel;
 
+import java.lang.reflect.*;
 import java.util.*;
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
@@ -187,6 +188,14 @@ public final class Session implements MessageServices {
    * {@link MessageServices}
    */
   @Override
+  public Map<String, String> formatDisplayData(Object data) {
+    return MimeFormatter.format(data);
+  }
+
+  /**
+   * {@link MessageServices}
+   */
+  @Override
   public void processTask(String content, Message message) {
     SessionTask task = new SessionTask(content, message);
     _worker.addTask(task);
@@ -199,6 +208,47 @@ public final class Session implements MessageServices {
   public void sendMessage(Message message) {
     synchronized (_publishQueue) {
       _publishQueue.add(message);
+    }
+  }
+
+
+  /**
+   * Implements data formatting to convert objects into mime representations.
+   */
+  private static final class MimeFormatter {
+
+    /**
+     * Formats the specified value into its mime representation.
+     * @param value the value to be formatted.
+     * @return the set of corresponding mime representations.
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> format(Object value) {
+      Map<String, String> mimeMap;
+
+      Class<?> valueClass = value.getClass();
+      Method conversionMethod = null;
+
+      try {
+        conversionMethod = valueClass.getMethod("toMimeRepresentation", (Class<?>[])null);
+      }
+      catch (NoSuchMethodException e) {
+      }
+
+      if (conversionMethod != null) {
+        try {
+          return (Map<String, String>)conversionMethod.invoke(valueClass, (Object[])null);
+        }
+        catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+
+      // Default to a textual representation produced via toString.
+      mimeMap = new HashMap<String, String>();
+      mimeMap.put("text/plain", value.toString());
+
+      return mimeMap;
     }
   }
 }
