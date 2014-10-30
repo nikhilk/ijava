@@ -4,10 +4,12 @@
 package ijava.shell;
 
 import java.lang.reflect.*;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
 import ijava.shell.compiler.*;
+import ijava.shell.dependencies.*;
 import ijava.shell.extensions.*;
 
 /**
@@ -21,7 +23,9 @@ public final class JavaShell implements Evaluator {
           "Please re-run the code to initialize the variable again.";
 
   private final HashMap<String, EvaluatorExtension> _extensions;
+  private final HashMap<String, DependencyResolver> _resolvers;
 
+  private final HashMap<String, Dependency> _dependencies;
   private final HashSet<String> _imports;
   private final HashSet<String> _staticImports;
   private final HashSet<String> _packages;
@@ -37,7 +41,9 @@ public final class JavaShell implements Evaluator {
    */
   public JavaShell() {
     _extensions = new HashMap<String, EvaluatorExtension>();
+    _resolvers = new HashMap<String, DependencyResolver>();
 
+    _dependencies = new HashMap<String, Dependency>();
     _imports = new HashSet<String>();
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
@@ -56,6 +62,9 @@ public final class JavaShell implements Evaluator {
 
     // Register a few extensions by default
     registerExtension("import", new JavaExtensions.ImportExtension());
+
+    // Register the standard dependency resolver by default
+    registerResolver("maven", new MavenDependencyResolver());
   }
 
   /**
@@ -85,6 +94,26 @@ public final class JavaShell implements Evaluator {
    */
   public JavaShellState getState() {
     return _state;
+  }
+
+  /**
+   * Adds the specified dependency to the shell.
+   * @param uri the URI that identifies the dependency.
+   */
+  public void addDependency(URI uri) throws IllegalArgumentException {
+    if (!uri.isAbsolute()) {
+      throw new IllegalArgumentException("The URI used to identify a dependency must be absolute.");
+    }
+
+    DependencyResolver resolver = _resolvers.get(uri.getScheme());
+    if (resolver == null) {
+      throw new IllegalArgumentException("Unknown dependency type '" + uri.getScheme() + "'.");
+    }
+
+    Dependency dependency = resolver.resolve(uri);
+    _dependencies.put(uri.toString(), dependency);
+
+    // TODO: ClassLoader chaining
   }
 
   /**
@@ -258,6 +287,15 @@ public final class JavaShell implements Evaluator {
    */
   public void registerExtension(String name, EvaluatorExtension extension) {
     _extensions.put(name, extension);
+  }
+
+  /**
+   * Registers a resolver that can be used to resolve dependency URIs.
+   * @param name the name of the resolver, used to match against scheme in dependency URIs.
+   * @param resolver the resolver instance to register.
+   */
+  public void registerResolver(String name, DependencyResolver resolver) {
+    _resolvers.put(name, resolver);
   }
 
   /**
