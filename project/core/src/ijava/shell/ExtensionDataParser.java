@@ -1,14 +1,14 @@
-// ExtensionParser.java
+// ExtensionDataParser.java
 //
 
-package ijava.shell.extensions;
+package ijava.shell;
 
 import java.util.regex.*;
 
 /**
  * Parses extensions to be evaluated in the shell.
  */
-public final class ExtensionParser {
+public final class ExtensionDataParser {
 
   private final static Pattern ExtensionPattern;
 
@@ -18,11 +18,11 @@ public final class ExtensionParser {
   }
 
   /**
-   * Parses an extension object from data representing an extension invocation.
-   * @param data the extension data.
-   * @return a parsed Extension object.
+   * Parses text representing an extension invocation.
+   * @param data the text to parse.
+   * @return a parsed ExtensionData object.
    */
-  public Extension parse(String data) {
+  public ExtensionData parse(String data) {
     String name = null;
     String declaration = null;
     String content = null;
@@ -40,7 +40,7 @@ public final class ExtensionParser {
       data = data.substring(1, newLineIndex);
     }
 
-    Matcher matcher = ExtensionParser.ExtensionPattern.matcher(data);
+    Matcher matcher = ExtensionDataParser.ExtensionPattern.matcher(data);
     if (!matcher.matches()) {
       return null;
     }
@@ -48,6 +48,6 @@ public final class ExtensionParser {
     name = matcher.group("name");
     declaration = matcher.group("decl");
 
-    return new Extension(name, declaration, content);
+    return new ExtensionData(name, declaration, content);
   }
 }

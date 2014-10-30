@@ -3,8 +3,6 @@
 
 package ijava.shell;
 
-import ijava.*;
-
 /**
  * Standard Java-language related extensions.
  */
@@ -16,13 +14,11 @@ public final class JavaExtensions {
   /**
    * Handles %import invocations to add imported packages or types to subsequent compilations.
    */
-  public static final class ImportExtension implements EvaluatorExtension {
+  public static final class ImportExtension implements Extension {
 
     @Override
-    public Object evaluate(Evaluator evaluator, String declaration, String data) throws Exception {
-      JavaShell shell = (JavaShell)evaluator;
+    public Object evaluate(JavaShell shell, String declaration, String data) throws Exception {
       shell.addImport(declaration, /* staticImport */ false);
-
       return null;
     }
   }

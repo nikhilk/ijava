@@ -1,7 +1,7 @@
 // DependencyResolver.java
 //
 
-package ijava.shell.dependencies;
+package ijava.shell;
 
 import java.net.*;
 

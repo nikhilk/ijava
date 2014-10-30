@@ -9,8 +9,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
 import ijava.shell.compiler.*;
-import ijava.shell.dependencies.*;
-import ijava.shell.extensions.*;
 
 /**
  * Provides the interactive shell or REPL functionality for Java.
@@ -22,7 +20,7 @@ public final class JavaShell implements Evaluator {
           "It appears the type of that variable has been redeclared to '%s'. " +
           "Please re-run the code to initialize the variable again.";
 
-  private final HashMap<String, EvaluatorExtension> _extensions;
+  private final HashMap<String, Extension> _extensions;
   private final HashMap<String, DependencyResolver> _resolvers;
 
   private final HashMap<String, Dependency> _dependencies;
@@ -40,7 +38,7 @@ public final class JavaShell implements Evaluator {
    * Initializes an instance of an JavaShell.
    */
   public JavaShell() {
-    _extensions = new HashMap<String, EvaluatorExtension>();
+    _extensions = new HashMap<String, Extension>();
     _resolvers = new HashMap<String, DependencyResolver>();
 
     _dependencies = new HashMap<String, Dependency>();
@@ -64,7 +62,7 @@ public final class JavaShell implements Evaluator {
     registerExtension("import", new JavaExtensions.ImportExtension());
 
     // Register the standard dependency resolver by default
-    registerResolver("maven", new MavenDependencyResolver());
+    registerResolver("maven", new JavaResolvers.MavenResolver());
   }
 
   /**
@@ -137,15 +135,15 @@ public final class JavaShell implements Evaluator {
    * @param data the evaluation text.
    */
   private Object invokeExtension(String data) throws Exception {
-    ExtensionParser parser = new ExtensionParser();
-    Extension extensionData = parser.parse(data);
+    ExtensionDataParser parser = new ExtensionDataParser();
+    ExtensionData extensionData = parser.parse(data);
 
     if (extensionData == null) {
       throw new EvaluationError("Invalid syntax.");
     }
 
     String name = extensionData.getName();
-    EvaluatorExtension extension = _extensions.get(name);
+    Extension extension = _extensions.get(name);
     if (extension == null) {
       throw new EvaluationError("Invalid syntax. Unknown identifier '" + name + "'");
     }
@@ -285,7 +283,7 @@ public final class JavaShell implements Evaluator {
    * @param name the name of the extension used in invoking it.
    * @param extension the extension to be registered.
    */
-  public void registerExtension(String name, EvaluatorExtension extension) {
+  public void registerExtension(String name, Extension extension) {
     _extensions.put(name, extension);
   }
 

@@ -1,24 +1,24 @@
-// Extension.java
+// ExtensionData.java
 //
 
-package ijava.shell.extensions;
+package ijava.shell;
 
 /**
  * Represents the data for an extension invocation.
  */
-public final class Extension {
+public final class ExtensionData {
 
   private final String _name;
   private final String _declaration;
   private final String _content;
 
   /**
-   * Initializes an instance of an Extension.
+   * Initializes an instance of an ExtensionData.
    * @param name the name of the extension.
    * @param declaration the declaration for the extension.
    * @param content the content for the extension.
    */
-  public Extension(String name, String declaration, String content) {
+  public ExtensionData(String name, String declaration, String content) {
     _name = name;
     _declaration = declaration;
     _content = content;
