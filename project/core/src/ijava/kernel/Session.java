@@ -9,7 +9,6 @@ import org.zeromq.*;
 import org.zeromq.ZMQ.*;
 import ijava.*;
 import ijava.kernel.protocol.*;
-import ijava.kernel.protocol.messages.*;
 
 /**
  * Represents a running Kernel instance.
@@ -129,7 +128,7 @@ public final class Session implements MessageServices {
     SessionHeartbeat.start(this, _options);
 
     // Send an initial idle message
-    processOutgoingMessage(KernelInfo.StatusMessage.createIdleStatus());
+    processOutgoingMessage(Messages.KernelStatus.createIdleStatus());
 
     // This thread will handle incoming socket messages and send out-going socket messages.
     // In other words, all socket processing occurs in the thread that the sockets were

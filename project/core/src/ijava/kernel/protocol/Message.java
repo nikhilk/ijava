@@ -6,7 +6,6 @@ package ijava.kernel.protocol;
 import java.lang.reflect.*;
 import java.util.*;
 import org.json.simple.*;
-import ijava.kernel.protocol.messages.*;
 
 /**
  * Represents a single message that is received or sent over a channel.
@@ -73,15 +72,15 @@ public abstract class Message {
   static {
     HashMap<String, Class<? extends Message>> messageTypes =
         new HashMap<String, Class<? extends Message>>();
-    messageTypes.put(Message.KernelInfoRequest, KernelInfo.RequestMessage.class);
-    messageTypes.put(Message.ShutdownRequest, Shutdown.RequestMessage.class);
-    messageTypes.put(Message.ExecuteRequest, Execute.RequestMessage.class);
+    messageTypes.put(Message.KernelInfoRequest, Messages.KernelInfoRequest.class);
+    messageTypes.put(Message.ShutdownRequest, Messages.ShutdownRequest.class);
+    messageTypes.put(Message.ExecuteRequest, Messages.ExecuteRequest.class);
 
     HashMap<String, Class<? extends MessageHandler>> messageHandlers =
         new HashMap<String, Class<? extends MessageHandler>>();
-    messageHandlers.put(Message.KernelInfoRequest, KernelInfo.Handler.class);
-    messageHandlers.put(Message.ShutdownRequest, Shutdown.Handler.class);
-    messageHandlers.put(Message.ExecuteRequest, Execute.Handler.class);
+    messageHandlers.put(Message.KernelInfoRequest, MessageHandlers.KernelInfoHandler.class);
+    messageHandlers.put(Message.ShutdownRequest, MessageHandlers.ShutdownHandler.class);
+    messageHandlers.put(Message.ExecuteRequest, MessageHandlers.ExecuteHandler.class);
 
     MessageTypes = messageTypes;
     MessageHandlers = messageHandlers;

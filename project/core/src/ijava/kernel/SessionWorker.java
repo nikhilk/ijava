@@ -7,7 +7,6 @@ import java.io.*;
 import java.util.*;
 import ijava.*;
 import ijava.kernel.protocol.*;
-import ijava.kernel.protocol.messages.*;
 
 /**
  * Processes tasks within the kernel session.
@@ -49,11 +48,11 @@ public final class SessionWorker implements Runnable {
     String content = task.getContent();
 
     if (content.isEmpty()) {
-      Execute.ResponseMessage responseMessage =
-          new Execute.SuccessResponseMessage(parentMessage.getIdentity(),
-                                             parentMessage.getHeader(),
-                                             counter);
-      _session.sendMessage(responseMessage.associateChannel(parentMessage.getChannel()));
+      Messages.ExecuteResponse response =
+          new Messages.SuccessExecuteResponse(parentMessage.getIdentity(),
+                                              parentMessage.getHeader(),
+                                              counter);
+      _session.sendMessage(response.associateChannel(parentMessage.getChannel()));
 
       // Nothing to execute, so return the counter without incrementing.
       return counter;
@@ -74,9 +73,9 @@ public final class SessionWorker implements Runnable {
       // text spew across two different regions... but that doesn't seem to be the case in IPython.
       //
       // The stdin stream is simply disabled, i.e. fail fast if code attempts to read from it.
-      System.setOut(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDOUT,
+      System.setOut(new PrintStream(new PublishingOutputStream(Messages.StreamMessage.STDOUT,
                                                                parentMessage)));
-      System.setErr(new PrintStream(new PublishingOutputStream(Output.StreamMessage.STDERR,
+      System.setErr(new PrintStream(new PublishingOutputStream(Messages.StreamMessage.STDERR,
                                                                parentMessage,
                                                                /* autoFlush */ false)));
       System.setIn(new DisabledInputStream());
@@ -104,25 +103,26 @@ public final class SessionWorker implements Runnable {
     // Send a message to display the result, if there was any.
     if (result != null) {
       Map<String, String> data = _session.formatDisplayData(result);
-      Output.DataMessage dataMessage =
-          new Output.DataMessage(parentMessage.getIdentity(), parentMessage.getHeader(), data);
+      Messages.DataMessage dataMessage =
+          new Messages.DataMessage(parentMessage.getIdentity(), parentMessage.getHeader(), data);
       _session.sendMessage(dataMessage.associateChannel(MessageChannel.Output));
     }
 
     // Send the success/failed result as a result of performing the task.
-    Execute.ResponseMessage responseMessage;
+    Messages.ExecuteResponse response;
     if (error == null) {
-      responseMessage =
-          new Execute.SuccessResponseMessage(parentMessage.getIdentity(), parentMessage.getHeader(),
-                                             counter);
+      response =
+          new Messages.SuccessExecuteResponse(parentMessage.getIdentity(),
+                                              parentMessage.getHeader(),
+                                              counter);
     }
     else {
-      responseMessage =
-          new Execute.ErrorResponseMessage(parentMessage.getIdentity(), parentMessage.getHeader(),
-                                           counter,
-                                           error);
+      response =
+          new Messages.ErrorExecuteResponse(parentMessage.getIdentity(), parentMessage.getHeader(),
+                                            counter,
+                                            error);
     }
-    _session.sendMessage(responseMessage.associateChannel(parentMessage.getChannel()));
+    _session.sendMessage(response.associateChannel(parentMessage.getChannel()));
 
     return counter + 1;
   }
@@ -156,7 +156,7 @@ public final class SessionWorker implements Runnable {
         if (!busy) {
           // Transitioning from idle to busy
           busy = true;
-          _session.sendMessage(KernelInfo.StatusMessage.createBusyStatus());
+          _session.sendMessage(Messages.KernelStatus.createBusyStatus());
         }
 
         counter = processTask(task, counter);
@@ -165,7 +165,7 @@ public final class SessionWorker implements Runnable {
         if (busy) {
           // Transitioning from busy to idle
           busy = false;
-          _session.sendMessage(KernelInfo.StatusMessage.createIdleStatus());
+          _session.sendMessage(Messages.KernelStatus.createIdleStatus());
         }
       }
 
@@ -223,9 +223,9 @@ public final class SessionWorker implements Runnable {
         String text = _buffer.toString();
         _buffer.setLength(0);
 
-        Output.StreamMessage message =
-            new Output.StreamMessage(_parentMessage.getIdentity(), _parentMessage.getHeader(),
-                                     _name, text);
+        Messages.StreamMessage message =
+            new Messages.StreamMessage(_parentMessage.getIdentity(), _parentMessage.getHeader(),
+                                       _name, text);
         _session.sendMessage(message.associateChannel(MessageChannel.Output));
       }
     }
