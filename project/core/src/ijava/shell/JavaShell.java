@@ -24,6 +24,7 @@ public final class JavaShell implements Evaluator {
   private final HashMap<String, DependencyResolver> _resolvers;
 
   private final HashMap<String, Dependency> _dependencies;
+  private final HashSet<String> _jars;
   private final HashSet<String> _imports;
   private final HashSet<String> _staticImports;
   private final HashSet<String> _packages;
@@ -42,10 +43,19 @@ public final class JavaShell implements Evaluator {
     _resolvers = new HashMap<String, DependencyResolver>();
 
     _dependencies = new HashMap<String, Dependency>();
+    _jars = new HashSet<String>();
     _imports = new HashSet<String>();
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
+
+    // Register a few extensions by default
+    registerExtension("import", new JavaExtensions.ImportExtension());
+    registerExtension("dependency", new JavaExtensions.DependencyExtension());
+
+    // Register the standard dependency resolver by default
+    registerResolver("file", new JavaResolvers.FileResolver());
+    registerResolver("maven", new JavaResolvers.MavenResolver());
 
     // The state resulting from executing code
     _state = new JavaShellState();
@@ -53,16 +63,17 @@ public final class JavaShell implements Evaluator {
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
 
+    // Add a reference to the default runtime jar
+    String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
+    String runtimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
+                                                resourcePath.indexOf("!/"));
+    _jars.add(runtimePath);
+
     // Import a few packages by default
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
 
-    // Register a few extensions by default
-    registerExtension("import", new JavaExtensions.ImportExtension());
-
-    // Register the standard dependency resolver by default
-    registerResolver("maven", new JavaResolvers.MavenResolver());
   }
 
   /**
@@ -99,6 +110,11 @@ public final class JavaShell implements Evaluator {
    * @param uri the URI that identifies the dependency.
    */
   public void addDependency(URI uri) throws IllegalArgumentException {
+    String dependencyKey = uri.toString();
+    if (_dependencies.containsKey(dependencyKey)) {
+      return;
+    }
+
     if (!uri.isAbsolute()) {
       throw new IllegalArgumentException("The URI used to identify a dependency must be absolute.");
     }
@@ -109,9 +125,16 @@ public final class JavaShell implements Evaluator {
     }
 
     Dependency dependency = resolver.resolve(uri);
-    _dependencies.put(uri.toString(), dependency);
 
-    // TODO: ClassLoader chaining
+    // Chain a class loader to enable loading types from the referenced dependency
+    _classLoader = dependency.createClassLoader(_classLoader);
+
+    // Add references to all the jars from the dependency so they can be used during compilation.
+    for (String jar: dependency.getJars()) {
+      _jars.add(jar);
+    }
+
+    _dependencies.put(dependencyKey, dependency);
   }
 
   /**
@@ -317,7 +340,7 @@ public final class JavaShell implements Evaluator {
     JavaRewriter rewriter = new JavaRewriter(this);
     snippet.setRewrittenCode(rewriter.rewrite(snippet));
 
-    SnippetCompiler compiler = new SnippetCompiler(_packages, _types);
+    SnippetCompiler compiler = new SnippetCompiler(_jars, _packages, _types);
     SnippetCompilation compilation = compiler.compile(snippet);
 
     if (!compilation.hasErrors()) {

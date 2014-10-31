@@ -19,8 +19,8 @@ import org.eclipse.jdt.internal.compiler.problem.*;
 public final class SnippetCompiler implements ICompilerRequestor, INameEnvironment {
 
   private final static CompilerOptions Options;
-  private final static String RuntimePath;
 
+  private final Set<String> _referencedJars;
   private final Set<String> _definedPackages;
   private final Map<String, byte[]> _definedTypes;
 
@@ -38,10 +38,6 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
     optionSet.put(CompilerOptions.OPTION_Compliance, CompilerOptions.VERSION_1_7);
 
     Options = new CompilerOptions(optionSet);
-
-    String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
-    RuntimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
-                                         resourcePath.indexOf("!/"));
   }
 
   /**
@@ -50,12 +46,13 @@ public final class SnippetCompiler implements ICompilerRequestor, INameEnvironme
    * @param packages the set of previously defined packages.
    * @param types the set of previously defined types.
    */
-  public SnippetCompiler(Set<String> packages, Map<String, byte[]> types) {
+  public SnippetCompiler(Set<String> jars, Set<String> packages, Map<String, byte[]> types) {
+    _referencedJars = jars;
     _definedPackages = packages;
     _definedTypes = types;
 
-    String[] paths = new String[] { SnippetCompiler.RuntimePath };
-    _references = new FileSystem(paths, null, "UTF-8");
+    _references = new FileSystem(_referencedJars.toArray(new String[_referencedJars.size()]),
+                                 null, "UTF-8");
 
     INameEnvironment nameEnvironment = this;
     ICompilerRequestor compilerRequestor = this;
