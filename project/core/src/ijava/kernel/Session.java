@@ -229,14 +229,14 @@ public final class Session implements MessageServices {
       Method conversionMethod = null;
 
       try {
-        conversionMethod = valueClass.getMethod("toMimeRepresentation", (Class<?>[])null);
+        conversionMethod = valueClass.getMethod("toMimeRepresentation");
       }
       catch (NoSuchMethodException e) {
       }
 
       if (conversionMethod != null) {
         try {
-          return (Map<String, String>)conversionMethod.invoke(valueClass, (Object[])null);
+          return (Map<String, String>)conversionMethod.invoke(value);
         }
         catch (Exception e) {
           e.printStackTrace();
