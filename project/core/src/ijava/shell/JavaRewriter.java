@@ -64,6 +64,8 @@ public final class JavaRewriter {
     sb.append(" implements java.util.concurrent.Callable<Object> {");
     sb.append(" public class __Inner { ");
     sb.append(code);
+    sb.append("\n");
+    sb.append("public __Inner() throws Exception { }\n");
     sb.append(" }\n\n");
     sb.append(_shell.getState().getCode());
     sb.append("  @Override public Object call() throws Exception {\n");
