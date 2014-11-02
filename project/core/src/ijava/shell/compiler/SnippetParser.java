@@ -64,6 +64,11 @@ public final class SnippetParser {
       return Snippet.classMembers(code, generatedClassName, classMembers);
     }
 
+    // Next try parsing as a single expression.
+    if (parseAsCodeExpression(code, errors)) {
+      return Snippet.codeExpression(code, generatedClassName);
+    }
+
     // Finally try parsing as a set of statements, which is a catch-all scenario.
     parseAsCodeBlock(code, errors);
     if (errors.size() == 0) {
@@ -97,6 +102,9 @@ public final class SnippetParser {
         break;
       case CodeBlock:
         parser.setKind(ASTParser.K_STATEMENTS);
+        break;
+      case CodeExpression:
+        parser.setKind(ASTParser.K_EXPRESSION);
         break;
       default:
         assert false : "Unexpected snippet type specified.";
@@ -215,6 +223,28 @@ public final class SnippetParser {
     else {
       errors.add(SnippetParser.ERROR_COULD_NOT_PARSE);
     }
+  }
+
+  /**
+   * Attempts to parse the specified code as an expression.
+   * @param code the code to be parsed.
+   * @param errors the list of errors to be populated if any.
+   * @return whether the code can be parsed as an expression.
+   */
+  private boolean parseAsCodeExpression(String code, List<String> errors) {
+    CompilationUnit compilationUnit = null;
+
+    ASTNode ast = parseCode(code, SnippetType.CodeExpression);
+    while (ast != null) {
+      if (ast instanceof CompilationUnit) {
+        compilationUnit = (CompilationUnit)ast;
+        break;
+      }
+
+      ast = ast.getParent();
+    }
+
+    return (compilationUnit != null) && (compilationUnit.getProblems().length == 0);
   }
 
   /**

@@ -22,5 +22,10 @@ public enum SnippetType {
   /**
    * Represents one or more statements that should be executed.
    */
-  CodeBlock
+  CodeBlock,
+
+  /**
+   * Represents a single expression that should be executed.
+   */
+  CodeExpression
 }

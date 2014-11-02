@@ -30,13 +30,20 @@ public final class JavaRewriter {
   public String rewrite(Snippet snippet) {
     String rewrittenCode = null;
 
-    if (snippet.getType() == SnippetType.ClassMembers) {
-      rewrittenCode = rewriteClassMembers(snippet.getClassName(),
-                                          snippet.getCode(),
-                                          snippet.getClassMembers());
-    }
-    else if (snippet.getType() == SnippetType.CodeBlock) {
-      rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
+    switch (snippet.getType()) {
+      case ClassMembers:
+        rewrittenCode = rewriteClassMembers(snippet.getClassName(),
+                                            snippet.getCode(),
+                                            snippet.getClassMembers());
+        break;
+      case CodeBlock:
+        rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
+        break;
+      case CodeExpression:
+        rewrittenCode = rewriteCodeExpression(snippet.getClassName(), snippet.getCode());
+        break;
+      default:
+        break;
     }
 
     return rewrittenCode;
@@ -101,5 +108,12 @@ public final class JavaRewriter {
     sb.append("}");
 
     return sb.toString();
+  }
+
+  private String rewriteCodeExpression(String className, String codeExpression) {
+    // Mostly similar to a code block, once the expression has been converted to a statement.
+
+    String codeBlock = "return (" + codeExpression + ");";
+    return rewriteCodeBlock(className, codeBlock);
   }
 }

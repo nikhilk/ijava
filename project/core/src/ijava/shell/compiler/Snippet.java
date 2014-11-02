@@ -57,6 +57,16 @@ public final class Snippet {
   }
 
   /**
+   * Creates a code snippet representing an executable expression.
+   * @param code the code representing the snippet.
+   * @param className the name of the top-level class.
+   * @return a Snippet object.
+   */
+  public static Snippet codeExpression(String code, String className) {
+    return new Snippet(SnippetType.CodeExpression, code, className);
+  }
+
+  /**
    * Creates a code snippet representing a complete compilation unit (or java file).
    * @param code the code representing the snippet.
    * @param className the name of the top-level class.
