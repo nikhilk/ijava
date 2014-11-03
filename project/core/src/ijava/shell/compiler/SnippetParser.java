@@ -55,13 +55,13 @@ public final class SnippetParser {
 
     // If that didn't work, next attempt to parse the code as the body of a class, i.e. a set of
     // class members.
-    List<SnippetCodeMember> classMembers = parseAsClassMembers(code, errors);
-    if (classMembers != null) {
+    List<SnippetCodeMember> members = parseAsCodeMembers(code, errors);
+    if (members != null) {
       if (errors.size() != 0) {
         throw new SnippetException(errors);
       }
 
-      return Snippet.classMembers(code, generatedClassName, classMembers);
+      return Snippet.codeMembers(code, generatedClassName, members);
     }
 
     // Next try parsing as a single expression.
@@ -97,7 +97,7 @@ public final class SnippetParser {
         // method bodies (which we don't care about here).
         parser.setFocalPosition(0);
         break;
-      case ClassMembers:
+      case CodeMembers:
         parser.setKind(ASTParser.K_CLASS_BODY_DECLARATIONS);
         break;
       case CodeBlock:
@@ -127,14 +127,14 @@ public final class SnippetParser {
    *   this code block could not be parsed as a compilation unit.
    */
   @SuppressWarnings("unchecked")
-  private List<SnippetCodeMember> parseAsClassMembers(String code, List<String> errors) {
-    ASTNode ast = parseCode(code, SnippetType.ClassMembers);
+  private List<SnippetCodeMember> parseAsCodeMembers(String code, List<String> errors) {
+    ASTNode ast = parseCode(code, SnippetType.CodeMembers);
     if (!(ast instanceof TypeDeclaration)) {
       return null;
     }
 
     TypeDeclaration typeDeclaration = (TypeDeclaration)ast;
-    List<SnippetCodeMember> classMembers = new ArrayList<SnippetCodeMember>();
+    List<SnippetCodeMember> members = new ArrayList<SnippetCodeMember>();
 
     List<BodyDeclaration> memberDeclarations = typeDeclaration.bodyDeclarations();
     for (BodyDeclaration member : memberDeclarations) {
@@ -148,7 +148,7 @@ public final class SnippetParser {
             SnippetCodeMember fieldMember =
                 SnippetCodeMember.createField(varDeclaration.getName().getIdentifier(), type);
 
-            classMembers.add(fieldMember);
+            members.add(fieldMember);
           }
 
           break;
@@ -161,7 +161,7 @@ public final class SnippetParser {
             SnippetCodeMember methodMember =
                 SnippetCodeMember.createMethod(methodDeclaration.getName().getIdentifier(),
                                                methodDeclaration.toString());
-            classMembers.add(methodMember);
+            members.add(methodMember);
           }
           break;
         case ASTNode.INITIALIZER:
@@ -191,7 +191,7 @@ public final class SnippetParser {
       }
     }
 
-    return classMembers;
+    return members;
   }
 
   /**

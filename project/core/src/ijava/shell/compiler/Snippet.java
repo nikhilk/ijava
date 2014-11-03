@@ -32,21 +32,6 @@ public final class Snippet {
   }
 
   /**
-   * Creates a code snippet representing one or more class members.
-   * @param code the code representing the snippet.
-   * @param className the name of the top-level class.
-   * @param classMembers the list of members declared in the code.
-   * @return a Snippet object.
-   */
-  public static Snippet classMembers(String code, String className,
-                                     List<SnippetCodeMember> members) {
-    Snippet snippet = new Snippet(SnippetType.ClassMembers, code, className);
-    snippet._members = members;
-
-    return snippet;
-  }
-
-  /**
    * Creates a code snippet representing an executable block of statements.
    * @param code the code representing the snippet.
    * @param className the name of the top-level class.
@@ -67,6 +52,21 @@ public final class Snippet {
   }
 
   /**
+   * Creates a code snippet representing one or more class members.
+   * @param code the code representing the snippet.
+   * @param className the name of the top-level class.
+   * @param members the list of members declared in the code.
+   * @return a Snippet object.
+   */
+  public static Snippet codeMembers(String code, String className,
+                                    List<SnippetCodeMember> members) {
+    Snippet snippet = new Snippet(SnippetType.CodeMembers, code, className);
+    snippet._members = members;
+
+    return snippet;
+  }
+
+  /**
    * Creates a code snippet representing a complete compilation unit (or java file).
    * @param code the code representing the snippet.
    * @param className the name of the top-level class.
@@ -74,16 +74,6 @@ public final class Snippet {
    */
   public static Snippet compilationUnit(String code, String className) {
     return new Snippet(SnippetType.CompilationUnit, code, className);
-  }
-
-  /**
-   * Gets the list of class members in this code snippet. Only valid for snippets that represent
-   * class members.
-   * @return the list of member names.
-   */
-  public List<SnippetCodeMember> getClassMembers() {
-    assert _type == SnippetType.ClassMembers : "Only applicable to CompilationUnit snippets.";
-    return _members;
   }
 
   /**
@@ -101,6 +91,15 @@ public final class Snippet {
    */
   public String getCode() {
     return _code;
+  }
+
+  /**
+   * Gets the list of class members in this code snippet.
+   * @return the list of members.
+   */
+  public List<SnippetCodeMember> getCodeMembers() {
+    assert _type == SnippetType.CodeMembers : "Only applicable to CodeMembers snippets.";
+    return _members;
   }
 
   /**

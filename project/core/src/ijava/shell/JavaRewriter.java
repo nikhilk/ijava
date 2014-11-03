@@ -31,10 +31,10 @@ public final class JavaRewriter {
     String rewrittenCode = null;
 
     switch (snippet.getType()) {
-      case ClassMembers:
-        rewrittenCode = rewriteClassMembers(snippet.getClassName(),
-                                            snippet.getCode(),
-                                            snippet.getClassMembers());
+      case CodeMembers:
+        rewrittenCode = rewriteCodeMembers(snippet.getClassName(),
+                                           snippet.getCode(),
+                                           snippet.getCodeMembers());
         break;
       case CodeBlock:
         rewrittenCode = rewriteCodeBlock(snippet.getClassName(), snippet.getCode());
@@ -49,8 +49,8 @@ public final class JavaRewriter {
     return rewrittenCode;
   }
 
-  private String rewriteClassMembers(String className, String code,
-                                     List<SnippetCodeMember> members) {
+  private String rewriteCodeMembers(String className, String code,
+                                    List<SnippetCodeMember> members) {
     // The rewritten code is a class that can be compiled and executed.
     // - It contains an inner class called __Code that contains the class members
     //   being declared.

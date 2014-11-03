@@ -219,11 +219,11 @@ public final class JavaShell implements Evaluator {
     // Execute the code
     Object result = ((Callable<?>)instance).call();
 
-    if (snippet.getType() == SnippetType.ClassMembers) {
+    if (snippet.getType() == SnippetType.CodeMembers) {
       // If the snippet represented a set of class members, then add any declared fields
       // to be tracked in state
 
-      for (SnippetCodeMember member: snippet.getClassMembers()) {
+      for (SnippetCodeMember member: snippet.getCodeMembers()) {
         if (member.isField()) {
           _state.declareField(member.getName(), member.getType());
         }
@@ -253,7 +253,7 @@ public final class JavaShell implements Evaluator {
       }
     }
 
-    if (snippet.getType() == SnippetType.ClassMembers) {
+    if (snippet.getType() == SnippetType.CodeMembers) {
       // For class members, the result is simply a shim class containing the newly defined
       // members, i.e. not meaningful to return out of the shell.
       return null;

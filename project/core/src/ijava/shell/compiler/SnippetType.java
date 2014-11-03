@@ -14,10 +14,9 @@ public enum SnippetType {
   CompilationUnit,
 
   /**
-   * Represents one or a set of class members consisting of member
-   * fields and/or method declarations.
+   * Represents one or a set of fields and/or method declarations.
    */
-  ClassMembers,
+  CodeMembers,
 
   /**
    * Represents one or more statements that should be executed.
