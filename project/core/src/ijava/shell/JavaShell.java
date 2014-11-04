@@ -16,9 +16,9 @@ import ijava.shell.compiler.*;
 public final class JavaShell implements Evaluator {
 
   private final static String ERROR_TYPE_REDECLARED =
-      "The value of the variable '%s' of type '%s' is no longer valid. " +
-          "It appears the type of that variable has been redeclared to '%s'. " +
-          "Please re-run the code to initialize the variable again.";
+      "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
+          "Please run the code to re-initialize that variable first, or simply re-run this code " +
+          "to ignore the error and discard it.";
 
   private final HashMap<String, Extension> _extensions;
   private final HashMap<String, DependencyResolver> _resolvers;
@@ -204,8 +204,7 @@ public final class JavaShell implements Evaluator {
 
         String error = String.format(JavaShell.ERROR_TYPE_REDECLARED,
                                      variable,
-                                     value.getClass().toString(),
-                                     field.getType().toString());
+                                     value.getClass().toString());
         System.err.println(error);
       }
     }
