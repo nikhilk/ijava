@@ -205,7 +205,7 @@ public final class JavaShell implements Evaluator {
         String error = String.format(JavaShell.ERROR_TYPE_REDECLARED,
                                      variable,
                                      value.getClass().toString(),
-                                     field.getClass().toString());
+                                     field.getType().toString());
         System.err.println(error);
       }
     }
