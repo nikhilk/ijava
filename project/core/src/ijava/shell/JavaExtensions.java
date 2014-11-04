@@ -21,6 +21,10 @@ public final class JavaExtensions {
 
     @Override
     public Object evaluate(JavaShell shell, String declaration, String data) throws Exception {
+      if (declaration.startsWith("'") || declaration.startsWith("\"")) {
+        declaration = declaration.substring(1, declaration.length() - 1);
+      }
+
       shell.addDependency(URI.create(declaration));
       return null;
     }
