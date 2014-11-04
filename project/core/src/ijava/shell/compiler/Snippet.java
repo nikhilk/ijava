@@ -14,6 +14,7 @@ public final class Snippet {
   private final String _code;
   private final String _className;
 
+  private List<SnippetImport> _imports;
   private List<SnippetCodeMember> _members;
 
   private String _rewrittenCode;
@@ -62,6 +63,18 @@ public final class Snippet {
                                     List<SnippetCodeMember> members) {
     Snippet snippet = new Snippet(SnippetType.CodeMembers, code, className);
     snippet._members = members;
+
+    return snippet;
+  }
+
+  /**
+   * Creates a code snippet representing a set of import declarations.
+   * @param imports the list of imports.
+   * @return a Snippet object.
+   */
+  public static Snippet compilationImports(List<SnippetImport> imports) {
+    Snippet snippet = new Snippet(SnippetType.CompilationImports, "", "");
+    snippet._imports = imports;
 
     return snippet;
   }
@@ -116,6 +129,15 @@ public final class Snippet {
    */
   public void setCompilation(SnippetCompilation value) {
     _compilation = value;
+  }
+
+  /**
+   * Gets the list of import declarations in the snippet.
+   * @return the list of referenced names.
+   */
+  public List<SnippetImport> getImports() {
+    assert _type == SnippetType.CompilationImports : "Only applicable to import snippets.";
+    return _imports;
   }
 
   /**

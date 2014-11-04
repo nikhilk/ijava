@@ -4,6 +4,7 @@
 package ijava.shell;
 
 import java.net.*;
+import java.util.*;
 
 /**
  * Standard Java-language related extensions.
@@ -26,14 +27,22 @@ public final class JavaExtensions {
   }
 
   /**
-   * Handles %import invocations to add imported packages or types to subsequent compilations.
+   * Handles %imports invocations to list the current set of imports.
    */
-  public static final class ImportExtension implements Extension {
+  public static final class ImportsExtension implements Extension {
 
     @Override
     public Object evaluate(JavaShell shell, String declaration, String data) throws Exception {
-      shell.addImport(declaration, /* staticImport */ false);
-      return null;
+      String[] imports = shell.getImports().split(";");
+      Arrays.sort(imports);
+
+      StringBuilder sb = new StringBuilder();
+      for (String s: imports) {
+        sb.append(s);
+        sb.append(";\n");
+      }
+
+      return sb.toString();
     }
   }
 }

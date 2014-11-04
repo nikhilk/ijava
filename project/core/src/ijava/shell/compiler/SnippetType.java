@@ -14,6 +14,11 @@ public enum SnippetType {
   CompilationUnit,
 
   /**
+   * Represents one or more import declarations.
+   */
+  CompilationImports,
+
+  /**
    * Represents one or a set of fields and/or method declarations.
    */
   CodeMembers,

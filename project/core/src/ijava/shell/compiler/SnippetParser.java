@@ -42,10 +42,15 @@ public final class SnippetParser {
     List<String> errors = new ArrayList<String>();
 
     // First, attempt to parse the code as a complete java file, i.e. a compilation unit.
-    String className = parseAsCompilationUnit(code, errors);
+    List<SnippetImport> imports = new ArrayList<SnippetImport>();
+    String className = parseAsCompilationUnit(code, imports, errors);
     if (className != null) {
       if (errors.size() != 0) {
         throw new SnippetException(errors.get(0));
+      }
+
+      if (className.length() == 0) {
+        return Snippet.compilationImports(imports);
       }
 
       return Snippet.compilationUnit(code, className);
@@ -250,12 +255,14 @@ public final class SnippetParser {
   /**
    * Attempts to parse the specified code as a compilation unit.
    * @param code the code to be parsed.
+   * @param imports the list of imports to be populated if any.
    * @param errors the list of errors to be populated if any.
    * @return the name of the top-level class in the code. Empty string if one wasn't declared, and
    *  null if this code block could not be parsed as a compilation unit.
    */
   @SuppressWarnings("unchecked")
-  private String parseAsCompilationUnit(String code, List<String> errors) {
+  private String parseAsCompilationUnit(String code, List<SnippetImport> imports,
+                                        List<String> errors) {
     ASTNode ast = parseCode(code, SnippetType.CompilationUnit);
 
     if (ast instanceof CompilationUnit) {
@@ -276,6 +283,18 @@ public final class SnippetParser {
           }
         }
 
+        if (compilationUnit.imports().size() != 0) {
+          for (Object declaration: compilationUnit.imports()) {
+            ImportDeclaration importDeclaration = (ImportDeclaration)declaration;
+            String name = importDeclaration.getName().getFullyQualifiedName();
+            if (importDeclaration.isOnDemand()) {
+              name = name + ".*";
+            }
+
+            imports.add(new SnippetImport(name, importDeclaration.isStatic()));
+          }
+        }
+
         if (firstPublicName != null) {
           return firstPublicName;
         }
@@ -283,7 +302,19 @@ public final class SnippetParser {
           return firstName;
         }
         else {
-          errors.add(SnippetParser.ERROR_MISSING_TYPE_DECLARATION);
+          // Detect if this code block is just a block of import declarations, i.e. no package
+          // declaration, no types (already established above), and one or more imports.
+
+          if ((compilationUnit.getPackage() != null) || (imports.size() == 0)) {
+            // A package declaration without any types, or absence of package declaration and
+            // absence of any imports ... treat both cases as error.
+
+            // Otherwise, an error is not triggered, and this block will be considered as a set
+            // of import references by the caller.
+
+            errors.add(SnippetParser.ERROR_MISSING_TYPE_DECLARATION);
+          }
+
           return "";
         }
       }

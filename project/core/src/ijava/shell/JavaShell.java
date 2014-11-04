@@ -50,8 +50,8 @@ public final class JavaShell implements Evaluator {
     _types = new HashMap<String, byte[]>();
 
     // Register a few extensions by default
-    registerExtension("import", new JavaExtensions.ImportExtension());
     registerExtension("dependency", new JavaExtensions.DependencyExtension());
+    registerExtension("imports", new JavaExtensions.ImportsExtension());
 
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
@@ -335,6 +335,14 @@ public final class JavaShell implements Evaluator {
     }
     catch (SnippetException e) {
       throw new EvaluationError(e.getMessage(), e);
+    }
+
+    if (snippet.getType() == SnippetType.CompilationImports) {
+      for (SnippetImport importReference: snippet.getImports()) {
+        addImport(importReference.getName(), importReference.isStatic());
+      }
+
+      return null;
     }
 
     JavaRewriter rewriter = new JavaRewriter(this);
