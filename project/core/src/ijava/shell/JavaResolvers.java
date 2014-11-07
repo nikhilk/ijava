@@ -65,9 +65,10 @@ public final class JavaResolvers {
       String groupId = pathParts[1];
       String artifactId = pathParts[2];
       String version = pathParts[3];
+      boolean transitive = !uri.getRawQuery().equals("transitive=false");
 
       MavenRepository repository = new MavenRepository();
-      List<String> jars = repository.resolveArtifact(groupId, artifactId, version);
+      List<String> jars = repository.resolveArtifact(groupId, artifactId, version, transitive);
 
       if ((jars == null) || (jars.size() == 0)) {
         throw new IllegalArgumentException("Could not resolve the specified maven artifact.");

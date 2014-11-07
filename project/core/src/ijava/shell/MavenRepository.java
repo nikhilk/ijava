@@ -97,9 +97,11 @@ public final class MavenRepository {
    * @param groupId the maven group of the artifact.
    * @param artifactId the maven id of the artifact.
    * @param version the version of the artifact.
+   * @param transitive whether to resolve the artifact and its dependencies in addition.
    * @return the list of jars that are the result of a resolve.
    */
-  public List<String> resolveArtifact(String groupId, String artifactId, String version) {
+  public List<String> resolveArtifact(String groupId, String artifactId, String version,
+                                      boolean transitive) {
     if (MavenRepository.MavenPath == null) {
       throw new IllegalStateException("Unable to find maven to resolve maven artifact.");
     }
@@ -120,7 +122,7 @@ public final class MavenRepository {
         MavenRepository.MavenPath,
         MavenRepository.MavenTarget,
         "-DremoteRepositories=" + MavenRepository.MavenCentral,
-        "-DexcludeTransitive=false",
+        "-DexcludeTransitive=" + !transitive,
         "-DincludeScope=runtime",
         "--file", MavenRepository.MavenProject
       };
