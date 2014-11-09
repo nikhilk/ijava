@@ -5,6 +5,7 @@ package ijava.shell;
 
 import java.lang.reflect.*;
 import java.net.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
 import ijava.*;
@@ -51,6 +52,7 @@ public final class JavaShell implements Evaluator {
 
     // Register a few extensions by default
     registerExtension("dependency", new JavaExtensions.DependencyExtension());
+    registerExtension("jars", new JavaExtensions.JarsExtension());
     registerExtension("imports", new JavaExtensions.ImportsExtension());
 
     // Register the standard dependency resolver by default
@@ -77,7 +79,7 @@ public final class JavaShell implements Evaluator {
   }
 
   /**
-   * The set of imports declared in the shell.
+   * Gets the set of imports declared in the shell.
    * @return the list of imports.
    */
   public String getImports() {
@@ -95,6 +97,21 @@ public final class JavaShell implements Evaluator {
     }
 
     return _cachedImports;
+  }
+
+  /**
+   * Gets the set of jars referenced in the shell.
+   * @return the list of jars.
+   */
+  public String[] getJars() {
+    String[] jars = new String[_jars.size()];
+    jars = _jars.toArray(jars);
+
+    for (int i = 0; i < jars.length; i++) {
+      jars[i] = Paths.get(jars[i]).toFile().getName();
+    }
+
+    return jars;
   }
 
   /**

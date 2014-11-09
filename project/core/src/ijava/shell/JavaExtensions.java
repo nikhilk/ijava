@@ -31,6 +31,26 @@ public final class JavaExtensions {
   }
 
   /**
+   * Handles %jars invocations to list the current set of jar dependencies.
+   */
+  public static final class JarsExtension implements Extension {
+
+    @Override
+    public Object evaluate(JavaShell shell, String declaration, String data) throws Exception {
+      String[] jars = shell.getJars();
+      Arrays.sort(jars);
+
+      StringBuilder sb = new StringBuilder();
+      for (String s: jars) {
+        sb.append(s);
+        sb.append("\n");
+      }
+
+      return sb.toString();
+    }
+  }
+
+  /**
    * Handles %imports invocations to list the current set of imports.
    */
   public static final class ImportsExtension implements Extension {
