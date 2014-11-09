@@ -4,7 +4,6 @@
 package ijava.kernel.protocol;
 
 import java.util.*;
-import org.json.simple.*;
 
 /**
  * The message types representing messages received and sent to/from the kernel.
@@ -28,8 +27,10 @@ public final class Messages {
      * @param content the content of the message.
      */
     public KernelInfoRequest(String identity,
-                             JSONObject header, JSONObject parentHeader, JSONObject metadata,
-                             JSONObject content) {
+                             Map<String, Object> header,
+                             Map<String, Object> parentHeader,
+                             Map<String, Object> metadata,
+                             Map<String, Object> content) {
       super(identity, header, parentHeader, metadata, content);
     }
   }
@@ -44,19 +45,18 @@ public final class Messages {
      * @param identity the identity of the client.
      * @param parentHeader the header of the associated parent message.
      */
-    @SuppressWarnings("unchecked")
-    public KernelInfoResponse(String identity, JSONObject parentHeader) {
+    public KernelInfoResponse(String identity, Map<String, Object> parentHeader) {
       super(identity, Message.KernelInfoResponse, parentHeader);
 
-      JSONArray protocolVersion = new JSONArray();
+      List<Integer> protocolVersion = new ArrayList<Integer>();
       protocolVersion.add(new Integer(4));
       protocolVersion.add(new Integer(1));
 
-      JSONArray languageVersion = new JSONArray();
+      List<Integer> languageVersion = new ArrayList<Integer>();
       languageVersion.add(new Integer(1));
       languageVersion.add(new Integer(7));
 
-      JSONObject content = getContent();
+      Map<String, Object> content = getContent();
       content.put("language", "java");
       content.put("language_version", languageVersion);
       content.put("protocol_version", protocolVersion);
@@ -75,11 +75,10 @@ public final class Messages {
      * Creates an instance of a StatusMessage with the specified status.
      * @param status the status of the kernel.
      */
-    @SuppressWarnings("unchecked")
     private KernelStatus(String status) {
-      super(null, Message.Status, new JSONObject());
+      super(null, Message.Status, new HashMap<String, Object>());
 
-      JSONObject content = getContent();
+      Map<String, Object> content = getContent();
       content.put("execution_state", status);
     }
 
@@ -114,8 +113,10 @@ public final class Messages {
      * @param content the content of the message.
      */
     public ShutdownRequest(String identity,
-                           JSONObject header, JSONObject parentHeader, JSONObject metadata,
-                           JSONObject content) {
+                           Map<String, Object> header,
+                           Map<String, Object> parentHeader,
+                           Map<String, Object> metadata,
+                           Map<String, Object> content) {
       super(identity, header, parentHeader, metadata, content);
     }
 
@@ -135,8 +136,7 @@ public final class Messages {
      * @param parentHeader the header of the associated parent message.
      * @param restart whether the kernel is shutting down for restarting.
      */
-    @SuppressWarnings("unchecked")
-    public ShutdownResponse(String identity, JSONObject parentHeader, Boolean restart) {
+    public ShutdownResponse(String identity, Map<String, Object> parentHeader, Boolean restart) {
       super(identity, Message.ShutdownResponse, parentHeader);
 
       getContent().put("restart", restart);
@@ -157,8 +157,10 @@ public final class Messages {
      * @param content the content of the message.
      */
     public ExecuteRequest(String identity,
-                          JSONObject header, JSONObject parentHeader, JSONObject metadata,
-                          JSONObject content) {
+                          Map<String, Object> header,
+                          Map<String, Object> parentHeader,
+                          Map<String, Object> metadata,
+                          Map<String, Object> content) {
       super(identity, header, parentHeader, metadata, content);
     }
 
@@ -200,12 +202,11 @@ public final class Messages {
      * @param status the status of the execution.
      * @param executionCount the counter representing the execution sequence number.
      */
-    @SuppressWarnings("unchecked")
-    public ExecuteResponse(String identity, JSONObject parentHeader,
+    public ExecuteResponse(String identity, Map<String, Object> parentHeader,
                            String status, int executionCount) {
       super(identity, Message.ExecuteResponse, parentHeader);
 
-      JSONObject content = getContent();
+      Map<String, Object> content = getContent();
       content.put("status", status);
       content.put("execution_count", new Integer(executionCount));
     }
@@ -223,14 +224,15 @@ public final class Messages {
      * @param status the status of the execution.
      * @param executionCount the counter representing the execution sequence number.
      */
-    @SuppressWarnings("unchecked")
-    public SuccessExecuteResponse(String identity, JSONObject parentHeader, int executionCount) {
+    public SuccessExecuteResponse(String identity,
+                                  Map<String, Object> parentHeader,
+                                  int executionCount) {
       super(identity, parentHeader, Messages.ExecuteResponse.SuccessStatus, executionCount);
 
-      JSONObject content = getContent();
-      content.put("payload", new JSONArray());
-      content.put("user_variables", new JSONObject());
-      content.put("user_expressions", new JSONObject());
+      Map<String, Object> content = getContent();
+      content.put("payload", new HashMap<String, Object>());
+      content.put("user_variables", new HashMap<String, Object>());
+      content.put("user_expressions", new HashMap<String, Object>());
     }
   }
 
@@ -247,12 +249,13 @@ public final class Messages {
      * @param executionCount the counter representing the execution sequence number.
      * @param error the exception that caused the failure.
      */
-    @SuppressWarnings("unchecked")
-    public ErrorExecuteResponse(String identity, JSONObject parentHeader, int executionCount,
+    public ErrorExecuteResponse(String identity,
+                                Map<String, Object> parentHeader,
+                                int executionCount,
                                 Throwable error) {
       super(identity, parentHeader, Messages.ExecuteResponse.ErrorStatus, executionCount);
 
-      JSONArray traceback = new JSONArray();
+      List<String> traceback = new ArrayList<String>();
       for (StackTraceElement stackFrame : error.getStackTrace()) {
         String frame = stackFrame.getClassName() + "." + stackFrame.getMethodName() +
             ":" + stackFrame.getLineNumber();
@@ -260,7 +263,7 @@ public final class Messages {
         traceback.add(frame);
       }
 
-      JSONObject content = getContent();
+      Map<String, Object> content = getContent();
       content.put("ename", error.getClass().getName());
       content.put("evalue", error.getMessage());
       content.put("traceback", traceback);
@@ -279,7 +282,9 @@ public final class Messages {
      * @param status the status of the execution.
      * @param executionCount the counter representing the execution sequence number.
      */
-    public AbortExecuteResponse(String identity, JSONObject parentHeader, int executionCount) {
+    public AbortExecuteResponse(String identity,
+                                Map<String, Object> parentHeader,
+                                int executionCount) {
       super(identity, parentHeader, Messages.ExecuteResponse.AbortStatus, executionCount);
     }
   }
@@ -295,16 +300,17 @@ public final class Messages {
      * @param parentHeader the header of the associated parent message.
      * @param data the resulting display data as mime/value pairs.
      */
-    @SuppressWarnings("unchecked")
-    public DataMessage(String identity, JSONObject parentHeader, Map<String, String> data) {
+    public DataMessage(String identity,
+                       Map<String, Object> parentHeader,
+                       Map<String, String> data) {
       super(identity, Message.DisplayData, parentHeader);
 
-      JSONObject dataObject = new JSONObject();
+      Map<String, Object> dataObject = new HashMap<String, Object>();
       for (Map.Entry<String, String> entry : data.entrySet()) {
         dataObject.put(entry.getKey(), entry.getValue());
       }
 
-      JSONObject content = getContent();
+      Map<String, Object> content = getContent();
       content.put("data", dataObject);
     }
   }
@@ -324,11 +330,13 @@ public final class Messages {
      * @param streamName the specific output stream.
      * @param data the output content.
      */
-    @SuppressWarnings("unchecked")
-    public StreamMessage(String identity, JSONObject parentHeader, String streamName, String data) {
+    public StreamMessage(String identity,
+                         Map<String, Object> parentHeader,
+                         String streamName,
+                         String data) {
       super(identity, Message.Stream, parentHeader);
 
-      JSONObject content = getContent();
+      Map<String, Object> content = getContent();
       content.put("name", streamName);
       content.put("data", data);
     }

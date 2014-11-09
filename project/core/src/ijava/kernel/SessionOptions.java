@@ -6,8 +6,8 @@ package ijava.kernel;
 import java.io.*;
 import java.nio.charset.*;
 import java.nio.file.*;
-import org.json.simple.*;
-import org.json.simple.parser.*;
+import java.util.*;
+import com.fasterxml.jackson.jr.ob.*;
 
 /**
  * Represents options that control the behavior of the current session.
@@ -111,23 +111,23 @@ public final class SessionOptions {
 
     String json = SessionOptions.readOptions(optionsPath);
     if (json.length() != 0) {
-      JSONParser parser = new JSONParser();
       try {
-        JSONObject optionsObject = (JSONObject)parser.parse(json);
+        Map<String, Object> optionsMap = JSON.std.mapFrom(json);
 
         options = new SessionOptions();
-        options._ip = (String)optionsObject.get("ip");
-        options._transport = (String)optionsObject.get("transport");
-        options._signatureKey = (String)optionsObject.get("key");
-        options._signatureScheme = (String)optionsObject.get("signature_scheme");
-        options._heartbeatPort = (int)(long)optionsObject.get("hb_port");
-        options._controlPort = (int)(long)optionsObject.get("control_port");
-        options._shellPort = (int)(long)optionsObject.get("shell_port");
-        options._ioPubPort = (int)(long)optionsObject.get("iopub_port");
-        options._stdinPort = (int)(long)optionsObject.get("stdin_port");
+        options._ip = (String)optionsMap.get("ip");
+        options._transport = (String)optionsMap.get("transport");
+        options._signatureKey = (String)optionsMap.get("key");
+        options._signatureScheme = (String)optionsMap.get("signature_scheme");
+        options._heartbeatPort = (int)optionsMap.get("hb_port");
+        options._controlPort = (int)optionsMap.get("control_port");
+        options._shellPort = (int)optionsMap.get("shell_port");
+        options._ioPubPort = (int)optionsMap.get("iopub_port");
+        options._stdinPort = (int)optionsMap.get("stdin_port");
       }
       catch (Exception e) {
         // TODO: Logging
+        e.printStackTrace();
       }
     }
 

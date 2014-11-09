@@ -5,7 +5,6 @@ package ijava.kernel.protocol;
 
 import java.lang.reflect.*;
 import java.util.*;
-import org.json.simple.*;
 
 /**
  * Represents a single message that is received or sent over a channel.
@@ -62,10 +61,10 @@ public abstract class Message {
   private final static Map<String, Class<? extends MessageHandler>> MessageHandlers;
 
   private final String _identity;
-  private final JSONObject _header;
-  private final JSONObject _parentHeader;
-  private final JSONObject _metadata;
-  private final JSONObject _content;
+  private final Map<String, Object> _header;
+  private final Map<String, Object> _parentHeader;
+  private final Map<String, Object> _metadata;
+  private final Map<String, Object> _content;
 
   private MessageChannel _channel;
 
@@ -91,8 +90,10 @@ public abstract class Message {
    * @param type the type of the message.
    * @param parentHeader the header of the associated parent message.
    */
-  protected Message(String identity, String type, JSONObject parentHeader) {
-    this(identity, Message.createHeader(type), parentHeader, new JSONObject(), new JSONObject());
+  protected Message(String identity, String type, Map<String, Object> parentHeader) {
+    this(identity, Message.createHeader(type), parentHeader,
+         new HashMap<String, Object>(),
+         new HashMap<String, Object>());
   }
 
   /**
@@ -104,8 +105,10 @@ public abstract class Message {
    * @param content the content of the message.
    */
   protected Message(String identity,
-                    JSONObject header, JSONObject parentHeader, JSONObject metadata,
-                    JSONObject content) {
+                    Map<String, Object> header,
+                    Map<String, Object> parentHeader,
+                    Map<String, Object> metadata,
+                    Map<String, Object> content) {
     _identity = identity;
     _header = header;
     _parentHeader = parentHeader;
@@ -133,9 +136,10 @@ public abstract class Message {
    * @return a message object of appropriate type.
    */
   public static Message createMessage(String identity,
-                                      JSONObject header, JSONObject parentHeader,
-                                      JSONObject metadata,
-                                      JSONObject content) {
+                                      Map<String, Object> header,
+                                      Map<String, Object> parentHeader,
+                                      Map<String, Object> metadata,
+                                      Map<String, Object> content) {
     String type = (String)header.get("msg_type");
 
     Class<? extends Message> messageClass = Message.MessageTypes.get(type);
@@ -147,9 +151,7 @@ public abstract class Message {
 
     try {
       Constructor<? extends Message> messageCtor =
-          messageClass.getConstructor(String.class,
-                                      JSONObject.class, JSONObject.class,
-                                      JSONObject.class, JSONObject.class);
+          messageClass.getConstructor(String.class, Map.class, Map.class, Map.class, Map.class);
       return messageCtor.newInstance(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
@@ -171,7 +173,7 @@ public abstract class Message {
    * Gets the content associated with the message.
    * @return the content object.
    */
-  protected JSONObject getContent() {
+  protected Map<String, Object> getContent() {
     return _content;
   }
 
@@ -198,7 +200,7 @@ public abstract class Message {
    * Gets the header of the message.
    * @return the header object.
    */
-  public JSONObject getHeader() {
+  public Map<String, Object> getHeader() {
     return _header;
   }
 
@@ -222,7 +224,7 @@ public abstract class Message {
    * Gets the metadata associated with the message.
    * @return the metadata object.
    */
-  protected JSONObject getMetadata() {
+  protected Map<String, Object> getMetadata() {
     return _metadata;
   }
 
@@ -230,7 +232,7 @@ public abstract class Message {
    * Gets the header of associated parent message.
    * @return the parent header object.
    */
-  protected JSONObject getParentHeader() {
+  protected Map<String, Object> getParentHeader() {
     return _parentHeader;
   }
 
@@ -242,10 +244,9 @@ public abstract class Message {
     return (String)_header.get("msg_type");
   }
 
-  @SuppressWarnings("unchecked")
-  private static JSONObject createHeader(String type) {
+  private static Map<String, Object> createHeader(String type) {
     String id = UUID.randomUUID().toString().replace("-", "");
-    JSONObject header = new JSONObject();
+    Map<String, Object> header = new HashMap<String, Object>();
 
     header.put("msg_id", id);
     header.put("msg_type", type);

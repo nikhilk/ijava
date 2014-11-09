@@ -3,8 +3,8 @@
 
 package ijava.kernel.protocol;
 
-import org.json.simple.*;
-import org.json.simple.parser.*;
+import java.util.*;
+import com.fasterxml.jackson.jr.ob.*;
 import org.zeromq.ZMQ.*;
 
 /**
@@ -13,8 +13,6 @@ import org.zeromq.ZMQ.*;
 public final class MessageIO {
 
   private final static String DELIMITER = "<IDS|MSG>";
-
-  private final static JSONParser Parser = new JSONParser();
 
   private MessageIO() {
   }
@@ -43,15 +41,17 @@ public final class MessageIO {
 
       // TODO: Verify HMAC
 
-      JSONObject header = (JSONObject)MessageIO.Parser.parse(headerJson);
-      JSONObject parentHeader = (JSONObject)MessageIO.Parser.parse(parentHeaderJson);
-      JSONObject metadata = (JSONObject)MessageIO.Parser.parse(metadataJson);
-      JSONObject content = (JSONObject)MessageIO.Parser.parse(contentJson);
+      Map<String, Object> header = JSON.std.mapFrom(headerJson);
+      Map<String, Object> parentHeader = JSON.std.mapFrom(parentHeaderJson);
+      Map<String, Object> metadata = JSON.std.mapFrom(metadataJson);
+      Map<String, Object> content = JSON.std.mapFrom(contentJson);
 
       return Message.createMessage(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
       // TODO: Logging
+      e.printStackTrace();
+
       return null;
     }
   }
@@ -62,24 +62,30 @@ public final class MessageIO {
    * @param message the message to send.
    */
   public static void writeMessage(Socket socket, Message message) {
-    String identity = message.getIdentity();
-    String headerJson = message.getHeader().toJSONString();
-    String parentHeaderJson = message.getParentHeader().toJSONString();
-    String metadataJson = message.getMetadata().toJSONString();
-    String contentJson = message.getContent().toJSONString();
+    try {
+      String identity = message.getIdentity();
+      String headerJson = JSON.std.asString(message.getHeader());
+      String parentHeaderJson = JSON.std.asString(message.getParentHeader());
+      String metadataJson = JSON.std.asString(message.getMetadata());
+      String contentJson = JSON.std.asString(message.getContent());
 
-    // TODO: Compute HMAC
-    String hmac = "";
+      // TODO: Compute HMAC
+      String hmac = "";
 
-    if (identity != null) {
-      socket.sendMore(identity);
+      if (identity != null) {
+        socket.sendMore(identity);
+      }
+
+      socket.sendMore(MessageIO.DELIMITER);
+      socket.sendMore(hmac);
+      socket.sendMore(headerJson);
+      socket.sendMore(parentHeaderJson);
+      socket.sendMore(metadataJson);
+      socket.send(contentJson);
     }
-
-    socket.sendMore(MessageIO.DELIMITER);
-    socket.sendMore(hmac);
-    socket.sendMore(headerJson);
-    socket.sendMore(parentHeaderJson);
-    socket.sendMore(metadataJson);
-    socket.send(contentJson);
+    catch (Exception e) {
+      // TODO: Logging
+      e.printStackTrace();
+    }
   }
 }
