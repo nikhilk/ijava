@@ -65,7 +65,9 @@ public final class JavaResolvers {
       String groupId = pathParts[1];
       String artifactId = pathParts[2];
       String version = pathParts[3];
-      boolean transitive = !uri.getRawQuery().equals("transitive=false");
+
+      String query = uri.getRawQuery();
+      boolean transitive = (query == null) || !query.equals("transitive=false");
 
       MavenRepository repository = new MavenRepository();
       List<String> jars = repository.resolveArtifact(groupId, artifactId, version, transitive);
