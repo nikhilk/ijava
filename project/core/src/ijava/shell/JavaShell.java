@@ -54,6 +54,8 @@ public final class JavaShell implements Evaluator {
     registerExtension("dependency", new JavaExtensions.DependencyExtension());
     registerExtension("jars", new JavaExtensions.JarsExtension());
     registerExtension("imports", new JavaExtensions.ImportsExtension());
+    registerExtension("text", new JavaExtensions.TextExtension());
+    registerExtension("json", new JavaExtensions.JsonExtension());
 
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
