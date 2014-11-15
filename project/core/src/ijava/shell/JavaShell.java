@@ -77,7 +77,6 @@ public final class JavaShell implements Evaluator {
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
-
   }
 
   /**
@@ -122,6 +121,20 @@ public final class JavaShell implements Evaluator {
    */
   public JavaShellState getState() {
     return _state;
+  }
+
+  /**
+   * Gets the specified type defined or referenced within the shell.
+   * @param name the name of the type to lookup.
+   * @return the resulting class, or null if not found.
+   */
+  public Class<?> getType(String name) {
+    try {
+      return _classLoader.loadClass(name);
+    }
+    catch (ClassNotFoundException e) {
+      return null;
+    }
   }
 
   /**
