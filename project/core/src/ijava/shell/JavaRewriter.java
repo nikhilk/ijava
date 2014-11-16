@@ -11,14 +11,14 @@ import ijava.shell.compiler.*;
  */
 public final class JavaRewriter {
 
-  private final JavaShell _shell;
+  private final InteractiveShell _shell;
 
   /**
    * Initializes an instance of a SnippetRewriter with the shell that is performing the
    * rewriting.
    * @param shell the shell performing the rewriting.
    */
-  public JavaRewriter(JavaShell shell) {
+  public JavaRewriter(InteractiveShell shell) {
     _shell = shell;
   }
 

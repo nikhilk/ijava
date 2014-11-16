@@ -16,5 +16,6 @@ public interface Extension {
    * @return an optional object result.
    * @throws Exception if there is an error during evaluation.
    */
-  public Object evaluate(JavaShell shell, String declaration, String content) throws Exception;
+  public Object evaluate(InteractiveShell shell, String declaration, String content)
+      throws Exception;
 }

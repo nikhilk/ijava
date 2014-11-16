@@ -1,4 +1,4 @@
-// JavaShellState.java
+// InteractiveState.java
 //
 
 package ijava.shell;
@@ -8,7 +8,7 @@ import java.util.*;
 /**
  * Represents the state of the shell, i.e. all the methods, fields and their values.
  */
-public final class JavaShellState {
+public final class InteractiveState {
 
   private final Map<String, String> _methods;
   private final Map<String, Set<String>> _fields;
@@ -17,9 +17,9 @@ public final class JavaShellState {
   private String _code;
 
   /**
-   * Initializes an instance of a JavaShellState.
+   * Initializes an instance of InteractiveState.
    */
-  public JavaShellState() {
+  public InteractiveState() {
     _methods = new HashMap<String, String>();
     _fields = new HashMap<String, Set<String>>();
 

@@ -1,4 +1,4 @@
-// JavaShell.java
+// InteractiveShell.java
 //
 
 package ijava.shell;
@@ -14,7 +14,7 @@ import ijava.shell.compiler.*;
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public final class JavaShell implements Evaluator {
+public final class InteractiveShell implements Evaluator {
 
   private final static String ERROR_TYPE_REDECLARED =
       "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
@@ -31,15 +31,15 @@ public final class JavaShell implements Evaluator {
   private final HashSet<String> _packages;
   private final HashMap<String, byte[]> _types;
 
-  private final JavaShellState _state;
+  private final InteractiveState _state;
 
   private ClassLoader _classLoader;
   private String _cachedImports;
 
   /**
-   * Initializes an instance of an JavaShell.
+   * Initializes an instance of an InteractiveShell.
    */
-  public JavaShell() {
+  public InteractiveShell() {
     _extensions = new HashMap<String, Extension>();
     _resolvers = new HashMap<String, DependencyResolver>();
 
@@ -62,7 +62,7 @@ public final class JavaShell implements Evaluator {
     registerResolver("maven", new JavaResolvers.MavenResolver());
 
     // The state resulting from executing code
-    _state = new JavaShellState();
+    _state = new InteractiveState();
 
     // Default the class loader to the system one initially.
     _classLoader = ClassLoader.getSystemClassLoader();
@@ -119,7 +119,7 @@ public final class JavaShell implements Evaluator {
    * Gets the current set of variables declared in the shell.
    * @return a set of name/value pairs.
    */
-  public JavaShellState getState() {
+  public InteractiveState getState() {
     return _state;
   }
 
@@ -242,7 +242,7 @@ public final class JavaShell implements Evaluator {
         _state.undeclareField(variable);
         staleState = true;
 
-        String error = String.format(JavaShell.ERROR_TYPE_REDECLARED,
+        String error = String.format(InteractiveShell.ERROR_TYPE_REDECLARED,
                                      variable,
                                      value.getClass().toString());
         System.err.println(error);

@@ -23,7 +23,7 @@ public final class Application {
       if (options != null) {
         showUsage = false;
 
-        JavaShell shell = new JavaShell();
+        InteractiveShell shell = new InteractiveShell();
         Session session = new Session(options, shell);
 
         session.start();
