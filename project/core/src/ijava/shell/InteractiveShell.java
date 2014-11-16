@@ -49,34 +49,7 @@ public class InteractiveShell implements Evaluator {
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
-
-    // Register a few extensions by default
-    registerExtension("dependency", new JavaExtensions.DependencyExtension());
-    registerExtension("jars", new JavaExtensions.JarsExtension());
-    registerExtension("imports", new JavaExtensions.ImportsExtension());
-    registerExtension("text", new JavaExtensions.TextExtension());
-    registerExtension("json", new JavaExtensions.JsonExtension());
-
-    // Register the standard dependency resolver by default
-    registerResolver("file", new JavaResolvers.FileResolver());
-    registerResolver("maven", new JavaResolvers.MavenResolver());
-
-    // The state resulting from executing code
     _state = new InteractiveState();
-
-    // Default the class loader to the system one initially.
-    _classLoader = ClassLoader.getSystemClassLoader();
-
-    // Add a reference to the default runtime jar
-    String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
-    String runtimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
-                                                resourcePath.indexOf("!/"));
-    _jars.add(runtimePath);
-
-    // Import a few packages by default
-    addImport("java.io.*", /* staticImport */ false);
-    addImport("java.util.*", /* staticImport */ false);
-    addImport("java.net.*", /* staticImport */ false);
   }
 
   /**
@@ -90,25 +63,33 @@ public class InteractiveShell implements Evaluator {
    */
   @SuppressWarnings({ "unchecked", "resource" })
   public static InteractiveShell create(URL appURL, String spec) {
+    InteractiveShell shell = null;
+
     if ((spec == null) || spec.isEmpty()) {
-      return new InteractiveShell();
+      shell = new InteractiveShell();
+    }
+    else {
+      String[] specParts = spec.split(":");
+      if (specParts.length == 2) {
+        try {
+          URL shellJar = new URL(appURL, specParts[0]);
+          ClassLoader shellClassLoader =
+              new URLClassLoader(new URL[] { shellJar }, InteractiveShell.class.getClassLoader());
+
+          Class<? extends InteractiveShell> shellClass =
+              (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
+
+          shell = shellClass.newInstance();
+        }
+        catch (Exception e) {
+          // TODO: Log
+        }
+      }
     }
 
-    String[] specParts = spec.split(":");
-    if (specParts.length == 2) {
-      try {
-        URL shellJar = new URL(appURL, specParts[0]);
-        ClassLoader shellClassLoader = new URLClassLoader(new URL[] { shellJar },
-                                                          InteractiveShell.class.getClassLoader());
-
-        Class<? extends InteractiveShell> shellClass =
-            (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
-
-        return shellClass.newInstance();
-      }
-      catch (Exception e) {
-        // TODO: Log
-      }
+    if (shell != null) {
+      shell.initialize(appURL);
+      return shell;
     }
 
     return null;
@@ -226,6 +207,33 @@ public class InteractiveShell implements Evaluator {
     }
 
     _cachedImports = null;
+  }
+
+  protected void initialize(URL appURL) {
+    // Register a few extensions by default
+    registerExtension("dependency", new JavaExtensions.DependencyExtension());
+    registerExtension("jars", new JavaExtensions.JarsExtension());
+    registerExtension("imports", new JavaExtensions.ImportsExtension());
+    registerExtension("text", new JavaExtensions.TextExtension());
+    registerExtension("json", new JavaExtensions.JsonExtension());
+
+    // Register the standard dependency resolver by default
+    registerResolver("file", new JavaResolvers.FileResolver());
+    registerResolver("maven", new JavaResolvers.MavenResolver());
+
+    // Default the class loader to the system one initially.
+    _classLoader = ClassLoader.getSystemClassLoader();
+
+    // Add a reference to the default runtime jar
+    String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
+    String runtimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
+                                                resourcePath.indexOf("!/"));
+    _jars.add(runtimePath);
+
+    // Import a few packages by default
+    addImport("java.io.*", /* staticImport */ false);
+    addImport("java.util.*", /* staticImport */ false);
+    addImport("java.net.*", /* staticImport */ false);
   }
 
   /**
