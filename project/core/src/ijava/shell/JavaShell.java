@@ -138,6 +138,14 @@ public final class JavaShell implements Evaluator {
   }
 
   /**
+   * Gets the set of type names defined within the shell.
+   * @return the set of declared type names.
+   */
+  public Set<String> getTypeNames() {
+    return _types.keySet();
+  }
+
+  /**
    * Adds the specified dependency to the shell.
    * @param uri the URI that identifies the dependency.
    */
