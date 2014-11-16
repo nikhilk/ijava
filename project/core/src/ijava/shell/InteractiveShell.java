@@ -14,7 +14,7 @@ import ijava.shell.compiler.*;
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public final class InteractiveShell implements Evaluator {
+public class InteractiveShell implements Evaluator {
 
   private final static String ERROR_TYPE_REDECLARED =
       "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
@@ -39,7 +39,7 @@ public final class InteractiveShell implements Evaluator {
   /**
    * Initializes an instance of an InteractiveShell.
    */
-  public InteractiveShell() {
+  protected InteractiveShell() {
     _extensions = new HashMap<String, Extension>();
     _resolvers = new HashMap<String, DependencyResolver>();
 
@@ -77,6 +77,41 @@ public final class InteractiveShell implements Evaluator {
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
+  }
+
+  /**
+   * Creates an instance of an InteractiveShell given a shell specification. An empty string
+   * creates the default shell.
+   * 
+   * A specific shell is identified via <relative path to jar>:<class name>.
+   * @param appURL the application path to use to resolve path references.
+   * @param spec the shell specification string.
+   * @return an instance of an InteractiveShell.
+   */
+  @SuppressWarnings({ "unchecked", "resource" })
+  public static InteractiveShell create(URL appURL, String spec) {
+    if ((spec == null) || spec.isEmpty()) {
+      return new InteractiveShell();
+    }
+
+    String[] specParts = spec.split(":");
+    if (specParts.length == 2) {
+      try {
+        URL shellJar = new URL(appURL, specParts[0]);
+        ClassLoader shellClassLoader = new URLClassLoader(new URL[] { shellJar },
+                                                          InteractiveShell.class.getClassLoader());
+
+        Class<? extends InteractiveShell> shellClass =
+            (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
+
+        return shellClass.newInstance();
+      }
+      catch (Exception e) {
+        // TODO: Log
+      }
+    }
+
+    return null;
   }
 
   /**
