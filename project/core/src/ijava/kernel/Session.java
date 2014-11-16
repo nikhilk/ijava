@@ -21,6 +21,8 @@ public final class Session implements MessageServices {
   private final SessionOptions _options;
   private final Evaluator _evaluator;
 
+  private final MessageSigner _signer;
+
   private final Context _context;
   private final Socket _controlSocket;
   private final Socket _shellSocket;
@@ -41,6 +43,8 @@ public final class Session implements MessageServices {
   public Session(SessionOptions options, Evaluator evaluator) {
     _options = options;
     _evaluator = evaluator;
+
+    _signer = MessageSigner.create(_options.getSignatureKey(), _options.getSignatureScheme());
 
     _context = ZMQ.context(Session.ZMQ_IO_THREADS);
     _controlSocket = createSocket(ZMQ.ROUTER, options.getControlPort());
@@ -72,7 +76,7 @@ public final class Session implements MessageServices {
   }
 
   private void processIncomingMessage(Socket socket, MessageChannel channel) {
-    Message message = MessageIO.readMessage(socket);
+    Message message = MessageIO.readMessage(socket, _signer);
     if (message == null) {
       return;
     }
@@ -111,7 +115,7 @@ public final class Session implements MessageServices {
     }
 
     if (socket != null) {
-      MessageIO.writeMessage(socket, message);
+      MessageIO.writeMessage(socket, _signer, message);
     }
   }
 

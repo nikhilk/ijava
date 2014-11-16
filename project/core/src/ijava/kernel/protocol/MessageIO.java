@@ -20,9 +20,10 @@ public final class MessageIO {
   /**
    * Reads an incoming message from the specified socket.
    * @param socket the socket to read from.
+   * @param signer the message signer to use to validate messages.
    * @return the resulting Message instance.
    */
-  public static Message readMessage(Socket socket) {
+  public static Message readMessage(Socket socket, MessageSigner signer) {
     try {
       String identity = null;
       for (String id = socket.recvStr(); !id.equals(MessageIO.DELIMITER); id = socket.recvStr()) {
@@ -33,13 +34,16 @@ public final class MessageIO {
         // TODO: When are there multiple identities?
       }
 
-      String hmac = socket.recvStr();
+      String signature = socket.recvStr();
       String headerJson = socket.recvStr();
       String parentHeaderJson = socket.recvStr();
       String metadataJson = socket.recvStr();
       String contentJson = socket.recvStr();
 
-      // TODO: Verify HMAC
+      if (!signer.validate(signature, headerJson, parentHeaderJson, metadataJson, contentJson)) {
+        // TODO: Log failure
+        return null;
+      }
 
       Map<String, Object> header = JSON.std.mapFrom(headerJson);
       Map<String, Object> parentHeader = JSON.std.mapFrom(parentHeaderJson);
@@ -59,25 +63,24 @@ public final class MessageIO {
   /**
    * Writes an out-going message to the specified socket.
    * @param socket the socket to write to.
+   * @param signer the message signer to use to compute signatures.
    * @param message the message to send.
    */
-  public static void writeMessage(Socket socket, Message message) {
+  public static void writeMessage(Socket socket, MessageSigner signer, Message message) {
     try {
       String identity = message.getIdentity();
       String headerJson = JSON.std.asString(message.getHeader());
       String parentHeaderJson = JSON.std.asString(message.getParentHeader());
       String metadataJson = JSON.std.asString(message.getMetadata());
       String contentJson = JSON.std.asString(message.getContent());
-
-      // TODO: Compute HMAC
-      String hmac = "";
+      String signature = signer.signature(headerJson, parentHeaderJson, metadataJson, contentJson);
 
       if (identity != null) {
         socket.sendMore(identity);
       }
 
       socket.sendMore(MessageIO.DELIMITER);
-      socket.sendMore(hmac);
+      socket.sendMore(signature);
       socket.sendMore(headerJson);
       socket.sendMore(parentHeaderJson);
       socket.sendMore(metadataJson);
