@@ -121,6 +121,9 @@ public final class Session implements MessageServices {
   public void start() {
     _stopped = false;
 
+    // Setup handling of shutdown based on interrupt handling
+    Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
+
     // Start the worker to process tasks submitted into the session.
     _worker.start();
 
@@ -248,6 +251,26 @@ public final class Session implements MessageServices {
       mimeMap.put("text/plain", value.toString());
 
       return mimeMap;
+    }
+  }
+
+
+  /**
+   * Implements shutdown logic.
+   */
+  private final class ShutdownHandler implements Runnable {
+
+    /**
+     * {@link} Runnable
+     */
+    @Override
+    public void run() {
+      Thread.currentThread().setName("Shutdown Handler");
+      try {
+        stop();
+      }
+      catch (Exception e) {
+      }
     }
   }
 }
