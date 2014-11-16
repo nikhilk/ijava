@@ -15,4 +15,3 @@ public class Shell extends InteractiveShell {
     state.setValue("sample", "Hello World!");
   }
 }
-
