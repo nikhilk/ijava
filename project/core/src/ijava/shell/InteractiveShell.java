@@ -234,6 +234,16 @@ public class InteractiveShell implements Evaluator {
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
+
+    // Add a dependency to the ijava runtime along with appropriate import.
+    try {
+      URI ijavaDependency = URI.create("file://" + new URL(appURL, "ijavart.jar").getPath());
+      addDependency(ijavaDependency);
+
+      addImport("ijava.ShellHelpers.*", /* staticImport */ true);
+    }
+    catch (MalformedURLException e) {
+    }
   }
 
   /**
