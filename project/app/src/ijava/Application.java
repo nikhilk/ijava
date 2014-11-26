@@ -22,9 +22,27 @@ public final class Application {
     if (args.length != 0) {
       SessionOptions options = SessionOptions.load(args[0]);
 
+      String shellSpec = "";
+      String[] dependencies = null;
+
+      if (args.length > 1) {
+        shellSpec = args[1];
+      }
+
+      if (args.length > 2) {
+        dependencies = new String[args.length - 2];
+        if (args.length > 2) {
+          for (int i = 2; i < args.length; i++) {
+            dependencies[i - 2] = args[i];
+          }
+        }
+      }
+      else {
+        dependencies = new String[0];
+      }
+
       URL applicationURL = Application.class.getProtectionDomain().getCodeSource().getLocation();
-      InteractiveShell shell = InteractiveShell.create(applicationURL,
-                                                       (args.length > 1 ? args[1] : ""));
+      InteractiveShell shell = InteractiveShell.create(applicationURL, shellSpec, dependencies);
 
       if ((options != null) && (shell != null)) {
         showUsage = false;
@@ -36,7 +54,7 @@ public final class Application {
 
     if (showUsage) {
       System.out.println("Usage:");
-      System.out.println("ijava <connection file> [<shell>]");
+      System.out.println("ijava <connection file> [<shell>] [jars...]");
       System.out.println();
       System.out.println("Connection file contains JSON formatted data for the following:");
       System.out.println("- ip            the IP address to listen on");
@@ -50,6 +68,9 @@ public final class Application {
       System.out.println("Shell is a reference to the particular java interactive REPL to use.");
       System.out.println("It is specified as follows:");
       System.out.println("  <path to jar (relative to ijava)>:<fully qualified class name>");
+      System.out.println();
+      System.out.println("Jars is a list of dependencies to pre-load at startup.");
+      System.out.println("  <path to jar (relative to ijava)> [0...N]");
       System.out.println();
 
       System.exit(1);

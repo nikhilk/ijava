@@ -58,12 +58,15 @@ public class InteractiveShell implements Evaluator {
    * 
    * A specific shell is identified via <relative path to jar>:<class name>.
    * @param appURL the application path to use to resolve path references.
-   * @param spec the shell specification string.
+   * @param spec the optional shell specification string for a derived shell instance.
+   * @param dependencies a list of jar dependencies to load. Only applicable when there is a
+   *    shell specification.
    * @return an instance of an InteractiveShell.
    */
   @SuppressWarnings({ "unchecked", "resource" })
-  public static InteractiveShell create(URL appURL, String spec) {
+  public static InteractiveShell create(URL appURL, String spec, String[] dependencies) {
     InteractiveShell shell = null;
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
 
     if ((spec == null) || spec.isEmpty()) {
       shell = new InteractiveShell();
@@ -72,10 +75,16 @@ public class InteractiveShell implements Evaluator {
       String[] specParts = spec.split(":");
       if (specParts.length == 2) {
         try {
-          URL shellJar = new URL(appURL, specParts[0]);
-          ClassLoader shellClassLoader =
-              new URLClassLoader(new URL[] { shellJar }, InteractiveShell.class.getClassLoader());
+          URL[] jars = new URL[1 + dependencies.length];
 
+          for (int i = 0; i < dependencies.length; i++) {
+            jars[i] = new URL(appURL, dependencies[i]);
+            System.out.println(jars[i]);
+          }
+          jars[jars.length - 1] = new URL(appURL, specParts[0]);
+          System.out.println(jars[jars.length - 1]);
+
+          ClassLoader shellClassLoader = new URLClassLoader(jars, classLoader);
           Class<? extends InteractiveShell> shellClass =
               (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
 
@@ -88,7 +97,7 @@ public class InteractiveShell implements Evaluator {
     }
 
     if (shell != null) {
-      shell.initialize(appURL);
+      shell.initialize(appURL, classLoader);
       return shell;
     }
 
@@ -209,7 +218,9 @@ public class InteractiveShell implements Evaluator {
     _cachedImports = null;
   }
 
-  protected void initialize(URL appURL) {
+  protected void initialize(URL appURL, ClassLoader classLoader) {
+    _classLoader = classLoader;
+
     // Register a few extensions by default
     registerExtension("dependency", new JavaExtensions.DependencyExtension());
     registerExtension("jars", new JavaExtensions.JarsExtension());
@@ -220,9 +231,6 @@ public class InteractiveShell implements Evaluator {
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
     registerResolver("maven", new JavaResolvers.MavenResolver());
-
-    // Default the class loader to the system one initially.
-    _classLoader = ClassLoader.getSystemClassLoader();
 
     // Add a reference to the default runtime jar
     String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
