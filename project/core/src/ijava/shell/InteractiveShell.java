@@ -66,7 +66,23 @@ public class InteractiveShell implements Evaluator {
   @SuppressWarnings({ "unchecked", "resource" })
   public static InteractiveShell create(URL appURL, String spec, String[] dependencies) {
     InteractiveShell shell = null;
+
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    URL[] jars = null;
+
+    if (dependencies != null) {
+      jars = new URL[dependencies.length];
+      for (int i = 0; i < dependencies.length; i++) {
+        try {
+          jars[i] = new URL(appURL, dependencies[i]);
+        }
+        catch (Exception e) {
+          // TODO: log
+        }
+      }
+
+      classLoader = new URLClassLoader(jars, classLoader);
+    }
 
     if ((spec == null) || spec.isEmpty()) {
       shell = new InteractiveShell();
@@ -75,16 +91,8 @@ public class InteractiveShell implements Evaluator {
       String[] specParts = spec.split(":");
       if (specParts.length == 2) {
         try {
-          URL[] jars = new URL[1 + dependencies.length];
-
-          for (int i = 0; i < dependencies.length; i++) {
-            jars[i] = new URL(appURL, dependencies[i]);
-            System.out.println(jars[i]);
-          }
-          jars[jars.length - 1] = new URL(appURL, specParts[0]);
-          System.out.println(jars[jars.length - 1]);
-
-          ClassLoader shellClassLoader = new URLClassLoader(jars, classLoader);
+          ClassLoader shellClassLoader =
+              new URLClassLoader(new URL[] { new URL(appURL, specParts[0]) }, classLoader);
           Class<? extends InteractiveShell> shellClass =
               (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
 
@@ -98,6 +106,14 @@ public class InteractiveShell implements Evaluator {
 
     if (shell != null) {
       shell.initialize(appURL, classLoader);
+
+      if (jars != null) {
+        for (URL jar: jars) {
+          URI jarURI = URI.create("file://" + jar.getPath());
+          shell.addDependency(jarURI, /* createClassLoader */ false);
+        }
+      }
+
       return shell;
     }
 
@@ -175,6 +191,16 @@ public class InteractiveShell implements Evaluator {
    * @param uri the URI that identifies the dependency.
    */
   public void addDependency(URI uri) throws IllegalArgumentException {
+    addDependency(uri, /* createClassLoader */ true);
+  }
+
+  /**
+   * Adds the specified dependency to the shell.
+   * @param uri the URI that identifies the dependency.
+   * @param createClassLoader whether a new class loader should be chained for the loading types
+   *    from the specified dependency.
+   */
+  private void addDependency(URI uri, boolean createClassLoader) throws IllegalArgumentException {
     String dependencyKey = uri.toString();
     if (_dependencies.containsKey(dependencyKey)) {
       return;
@@ -190,16 +216,17 @@ public class InteractiveShell implements Evaluator {
     }
 
     Dependency dependency = resolver.resolve(uri);
-
-    // Chain a class loader to enable loading types from the referenced dependency
-    _classLoader = dependency.createClassLoader(_classLoader);
+    _dependencies.put(dependencyKey, dependency);
 
     // Add references to all the jars from the dependency so they can be used during compilation.
     for (String jar: dependency.getJars()) {
       _jars.add(jar);
     }
 
-    _dependencies.put(dependencyKey, dependency);
+    if (createClassLoader) {
+      // Chain a class loader to enable loading types from the referenced dependency
+      _classLoader = dependency.createClassLoader(_classLoader);
+    }
   }
 
   /**
