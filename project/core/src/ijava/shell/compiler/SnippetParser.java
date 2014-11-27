@@ -53,7 +53,14 @@ public final class SnippetParser {
         return Snippet.compilationImports(imports);
       }
 
-      return Snippet.compilationUnit(code, className);
+      int nameSeparatorIndex = className.lastIndexOf('.');
+      String packageName = null;
+      if (nameSeparatorIndex > 0) {
+        packageName = className.substring(0, nameSeparatorIndex);
+        className = className.substring(nameSeparatorIndex + 1);
+      }
+
+      return Snippet.compilationUnit(code, className, packageName);
     }
 
     String generatedClassName = "__Class" + id + "__";
@@ -269,6 +276,12 @@ public final class SnippetParser {
       CompilationUnit compilationUnit = (CompilationUnit)ast;
       if (compilationUnit.getProblems().length == 0) {
         List<AbstractTypeDeclaration> types = compilationUnit.types();
+        PackageDeclaration packageDeclaration = compilationUnit.getPackage();
+
+        String packageName = "";
+        if (packageDeclaration != null) {
+          packageName = packageDeclaration.getName().getFullyQualifiedName() + ".";
+        }
 
         String firstName = null;
         String firstPublicName = null;
@@ -296,10 +309,10 @@ public final class SnippetParser {
         }
 
         if (firstPublicName != null) {
-          return firstPublicName;
+          return packageName + firstPublicName;
         }
         else if (firstName != null) {
-          return firstName;
+          return packageName + firstName;
         }
         else {
           // Detect if this code block is just a block of import declarations, i.e. no package

@@ -13,6 +13,7 @@ public final class Snippet {
   private final SnippetType _type;
   private final String _code;
   private final String _className;
+  private final String _packageName;
 
   private List<SnippetImport> _imports;
   private List<SnippetCodeMember> _members;
@@ -25,11 +26,13 @@ public final class Snippet {
    * @param type the type of the snippet inferred from the code.
    * @param code the code represented by the snippet.
    * @param className the name of the top-level class.
+   * @param packageName the name of the package if one was declared.
    */
-  private Snippet(SnippetType type, String code, String className) {
+  private Snippet(SnippetType type, String code, String className, String packageName) {
     _code = code;
     _type = type;
     _className = className;
+    _packageName = packageName;
   }
 
   /**
@@ -39,7 +42,7 @@ public final class Snippet {
    * @return a Snippet object.
    */
   public static Snippet codeBlock(String code, String className) {
-    return new Snippet(SnippetType.CodeBlock, code, className);
+    return new Snippet(SnippetType.CodeBlock, code, className, /* packageName */ null);
   }
 
   /**
@@ -49,7 +52,7 @@ public final class Snippet {
    * @return a Snippet object.
    */
   public static Snippet codeExpression(String code, String className) {
-    return new Snippet(SnippetType.CodeExpression, code, className);
+    return new Snippet(SnippetType.CodeExpression, code, className, /* packageName */ null);
   }
 
   /**
@@ -61,7 +64,7 @@ public final class Snippet {
    */
   public static Snippet codeMembers(String code, String className,
                                     List<SnippetCodeMember> members) {
-    Snippet snippet = new Snippet(SnippetType.CodeMembers, code, className);
+    Snippet snippet = new Snippet(SnippetType.CodeMembers, code, className, /* packageName */ null);
     snippet._members = members;
 
     return snippet;
@@ -73,7 +76,7 @@ public final class Snippet {
    * @return a Snippet object.
    */
   public static Snippet compilationImports(List<SnippetImport> imports) {
-    Snippet snippet = new Snippet(SnippetType.CompilationImports, "", "");
+    Snippet snippet = new Snippet(SnippetType.CompilationImports, "", "", null);
     snippet._imports = imports;
 
     return snippet;
@@ -83,10 +86,11 @@ public final class Snippet {
    * Creates a code snippet representing a complete compilation unit (or java file).
    * @param code the code representing the snippet.
    * @param className the name of the top-level class.
+   * @param packageName the name of the package if one was declared.
    * @return a Snippet object.
    */
-  public static Snippet compilationUnit(String code, String className) {
-    return new Snippet(SnippetType.CompilationUnit, code, className);
+  public static Snippet compilationUnit(String code, String className, String packageName) {
+    return new Snippet(SnippetType.CompilationUnit, code, className, packageName);
   }
 
   /**
@@ -138,6 +142,15 @@ public final class Snippet {
   public List<SnippetImport> getImports() {
     assert _type == SnippetType.CompilationImports : "Only applicable to import snippets.";
     return _imports;
+  }
+
+  /**
+   * Gets the name of the package if one was declared within a compilation unit.
+   * @return the name of the package.
+   */
+  public String getPackageName() {
+    assert _type == SnippetType.CompilationUnit : "Only applicable to compilation units.";
+    return _packageName;
   }
 
   /**

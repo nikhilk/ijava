@@ -31,6 +31,9 @@ public final class JavaRewriter {
     String rewrittenCode = null;
 
     switch (snippet.getType()) {
+      case CompilationUnit:
+        rewrittenCode = rewriteCompilationUnit(snippet.getPackageName(), snippet.getCode());
+        break;
       case CodeMembers:
         rewrittenCode = rewriteCodeMembers(snippet.getClassName(),
                                            snippet.getCode(),
@@ -115,5 +118,17 @@ public final class JavaRewriter {
 
     String codeBlock = "return (" + codeExpression + ");";
     return rewriteCodeBlock(className, codeBlock);
+  }
+
+  private String rewriteCompilationUnit(String packageName, String code) {
+    // If the compilation unit is missing a package declaration, add the imports added
+    // within the shell. If it contains a package declaration it is assumed to be a complete
+    // compilation unit and will be left unmodified.
+
+    if ((packageName == null) || packageName.isEmpty()) {
+      code = _shell.getImports() + code;
+    }
+
+    return code;
   }
 }
