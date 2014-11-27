@@ -3,6 +3,8 @@
 
 package ijava.shell;
 
+import java.util.*;
+
 /**
  * Represents the data for an extension invocation.
  */
@@ -46,5 +48,55 @@ public final class ExtensionData {
    */
   public String getName() {
     return _name;
+  }
+
+  /**
+   * Parses the declaration into a set of options, as if it were a set of command-line args.
+   * @return the parsed set of flags.
+   */
+  public Map<String, Object> parseOptions() {
+    HashMap<String, Object> options = new HashMap<String, Object>();
+
+    String[] args = _declaration.split(" ");
+    int i = 0;
+
+    while (i < args.length) {
+      String arg = args[i];
+
+      if (arg.equals("--")) {
+        // Treat this as separator between named options and positional options
+        i++;
+        break;
+      }
+      else if (arg.startsWith("-") && (arg.length() > 1)) {
+        String name = arg.substring(1);
+        i++;
+
+        if ((i < args.length) && !args[i].startsWith("-")) {
+          // Consume the next arg as the value
+          String value = args[i];
+          i++;
+
+          options.put(name, value);
+          i++;
+        }
+        else {
+          // Treat this as a boolean option
+          options.put(name, true);
+        }
+      }
+      else {
+        // Consider this as the start of positional options
+        break;
+      }
+    }
+
+    if (i < args.length) {
+      // Treat remaining args as positional options
+      String[] values = Arrays.copyOfRange(args, i, args.length - 1);
+      options.put("...", values);
+    }
+
+    return options;
   }
 }
