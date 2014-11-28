@@ -76,4 +76,8 @@ public final class ShellHelpers {
   public static void println(String s) {
     System.out.println(s);
   }
+
+  public static JavaScript script(String script) {
+    return new JavaScript(script);
+  }
 }
