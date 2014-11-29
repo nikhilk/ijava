@@ -24,17 +24,32 @@ public final class JavaScript {
     _dependencies = new ArrayList<Map.Entry<String, String>>();
   }
 
+  /**
+   * Adds alternate text in lieu of script functionality.
+   * @param text the alternate text to use.
+   * @return the modified JavaScript object.
+   */
   public JavaScript addAlternateText(String text) {
     _alternateText = text;
     return this;
   }
 
+  /**
+   * Adds a dependency of the script.
+   * @param module the name of the script dependency.
+   * @param variable the name of the resolved script dependency.
+   * @return the modified JavaScript object.
+   */
   public JavaScript addDependency(String module, String variable) {
     _dependencies.add(new AbstractMap.SimpleEntry<String, String>(module, variable));
     return this;
   }
 
-  private String generateScript() {
+  /**
+   * Generates the script to use as display data.
+   * @return the script with dependencies added.
+   */
+  public String generateScript() {
     StringBuilder sb = new StringBuilder();
 
     sb.append("require([");

@@ -13,8 +13,8 @@ public final class ShellHelpers {
   private ShellHelpers() {
   }
 
-  public static StaticHTML html(String markup) {
-    return new StaticHTML(markup);
+  public static HTML html(String markup) {
+    return new HTML(markup);
   }
 
   public static void print(boolean b) {
