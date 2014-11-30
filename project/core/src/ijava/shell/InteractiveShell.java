@@ -402,6 +402,7 @@ public class InteractiveShell implements Evaluator {
 
     for (String packageName : compilation.getPackages()) {
       _packages.add(packageName);
+      addImport(packageName + ".*", /* staticImport */ false);
     }
 
     HashSet<String> newNames = new HashSet<String>();
