@@ -4,6 +4,8 @@
 package ijava;
 
 import java.net.*;
+import java.util.logging.*;
+import ijava.*;
 import ijava.kernel.*;
 import ijava.shell.*;
 
@@ -46,6 +48,9 @@ public final class Application {
 
       if ((options != null) && (shell != null)) {
         showUsage = false;
+
+        // TODO: Make this customizable via command line
+        Log.initializeLogging(Level.INFO);
 
         Session session = new Session(options, shell);
         session.start();
