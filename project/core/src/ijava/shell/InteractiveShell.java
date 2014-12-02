@@ -303,6 +303,37 @@ public class InteractiveShell implements Evaluator {
   }
 
   /**
+   * Allows a derived shell to inspect or modify a compiled snippet.
+   * @param snippet the successfully compiled snippet.
+   */
+  protected void onSnippetCompiled(Snippet snippet) {
+  }
+
+  /**
+   * Allows a derived shell to inspect or modify the result of a snippet evaluation.
+   * @param snippet the evaluated snippet.
+   * @param result the result of successful evaluation.
+   * @return the result to return from the shell.
+   */
+  protected Object onSnippetEvaluated(Snippet snippet, Object result) {
+    return result;
+  }
+
+  /**
+   * Allows a derived shell to inspect or modify a parsed snippet.
+   * @param snippet the parsed snippet.
+   */
+  protected void onSnippetParsed(Snippet snippet) {
+  }
+
+  /**
+   * Allows a derived shell to inspect or modify a rewritten snippet.
+   * @param snippet the rewritten snippet.
+   */
+  protected void onSnippetRewritten(Snippet snippet) {
+  }
+
+  /**
    * Process the results of compiling a set of class members or a code block, i.e. restore old
    * shell state, execute new code, and then update shell state with resulting updates.
    * @param id the ID to use to generate unique names.
@@ -456,6 +487,7 @@ public class InteractiveShell implements Evaluator {
       return invokeExtension(data);
     }
 
+    // Parse the data as code into a Snippet object
     Snippet snippet = null;
     try {
       SnippetParser parser = new SnippetParser();
@@ -465,6 +497,10 @@ public class InteractiveShell implements Evaluator {
       throw new EvaluationError(e.getMessage(), e);
     }
 
+    onSnippetParsed(snippet);
+
+    // If the code was simply a set of imports, theres not much else to do besides
+    // just tracking the import references. This allows using normal java syntax for imports.
     if (snippet.getType() == SnippetType.CompilationImports) {
       for (SnippetImport importReference: snippet.getImports()) {
         addImport(importReference.getName(), importReference.isStatic());
@@ -473,21 +509,30 @@ public class InteractiveShell implements Evaluator {
       return null;
     }
 
+    // Rewrite the snippet, so it is always a compilable unit of java code.
     JavaRewriter rewriter = new JavaRewriter(this);
     snippet.setRewrittenCode(rewriter.rewrite(snippet));
 
+    onSnippetRewritten(snippet);
+
+    // Compile the snippet into a set of classes.
     SnippetCompiler compiler = new SnippetCompiler(_jars, _packages, _types);
     SnippetCompilation compilation = compiler.compile(snippet);
 
     if (!compilation.hasErrors()) {
       snippet.setCompilation(compilation);
 
+      onSnippetCompiled(snippet);
+
+      // Evaluate the snippet, i.e. execute the code. If the snippet was defining types
+      // then simply track the types declared in the shell instead.
       Object result = null;
       if (snippet.getType() == SnippetType.CompilationUnit) {
         processCompilationUnit(evaluationID, snippet);
       }
       else {
         result = processCode(evaluationID, snippet);
+        result = onSnippetEvaluated(snippet, result);
       }
 
       return result;

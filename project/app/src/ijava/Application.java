@@ -5,7 +5,6 @@ package ijava;
 
 import java.net.*;
 import java.util.logging.*;
-import ijava.*;
 import ijava.kernel.*;
 import ijava.shell.*;
 
