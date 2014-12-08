@@ -21,8 +21,8 @@ public final class JavaExtensions {
   public static final class DependencyExtension implements Extension {
 
     @Override
-    public Object evaluate(InteractiveShell shell, String declaration, String data)
-        throws Exception {
+    public Object evaluate(InteractiveShell shell, int evaluationID,
+                           String declaration, String data) throws Exception {
       if (declaration.startsWith("'") || declaration.startsWith("\"")) {
         declaration = declaration.substring(1, declaration.length() - 1);
       }
@@ -38,8 +38,8 @@ public final class JavaExtensions {
   public static final class JarsExtension implements Extension {
 
     @Override
-    public Object evaluate(InteractiveShell shell, String declaration, String data)
-        throws Exception {
+    public Object evaluate(InteractiveShell shell, int evaluationID,
+                           String declaration, String data) throws Exception {
       String[] jars = shell.getJars();
       Arrays.sort(jars);
 
@@ -59,8 +59,8 @@ public final class JavaExtensions {
   public static final class ImportsExtension implements Extension {
 
     @Override
-    public Object evaluate(InteractiveShell shell, String declaration, String data)
-        throws Exception {
+    public Object evaluate(InteractiveShell shell, int evaluationID,
+                           String declaration, String data) throws Exception {
       String[] imports = shell.getImports().split(";");
       Arrays.sort(imports);
 
@@ -80,8 +80,8 @@ public final class JavaExtensions {
   public static final class TextExtension implements Extension {
 
     @Override
-    public Object evaluate(InteractiveShell shell, String declaration, String data)
-        throws Exception {
+    public Object evaluate(InteractiveShell shell, int evaluationID,
+                           String declaration, String data) throws Exception {
       if (declaration.length() != 0) {
         shell.getState().declareField(declaration, "String");
         shell.getState().setValue(declaration, data);
@@ -100,8 +100,8 @@ public final class JavaExtensions {
   public static final class JsonExtension implements Extension {
 
     @Override
-    public Object evaluate(InteractiveShell shell, String declaration, String data)
-        throws Exception {
+    public Object evaluate(InteractiveShell shell, int evaluationID,
+                           String declaration, String data) throws Exception {
       Object value = null;
       String name = null;
 

@@ -284,8 +284,9 @@ public class InteractiveShell implements Evaluator {
   /**
    * Invokes an extension for the specified evaluation.
    * @param data the evaluation text.
+   * @param evaluationID the evaluation sequence number.
    */
-  private Object invokeExtension(String data) throws Exception {
+  private Object invokeExtension(String data, int evaluationID) throws Exception {
     ExtensionDataParser parser = new ExtensionDataParser();
     ExtensionData extensionData = parser.parse(data);
 
@@ -299,7 +300,8 @@ public class InteractiveShell implements Evaluator {
       throw new EvaluationError("Invalid syntax. Unknown identifier '" + name + "'");
     }
 
-    return extension.evaluate(this, extensionData.getDeclaration(), extensionData.getContent());
+    return extension.evaluate(this, evaluationID,
+                              extensionData.getDeclaration(), extensionData.getContent());
   }
 
   /**
@@ -484,7 +486,7 @@ public class InteractiveShell implements Evaluator {
   @Override
   public Object evaluate(String data, int evaluationID) throws Exception {
     if (data.startsWith("%")) {
-      return invokeExtension(data);
+      return invokeExtension(data, evaluationID);
     }
 
     // Parse the data as code into a Snippet object
