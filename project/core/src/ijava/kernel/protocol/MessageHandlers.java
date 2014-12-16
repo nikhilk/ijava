@@ -22,7 +22,7 @@ public final class MessageHandlers {
     @Override
     public void handleMessage(Message message, MessageServices services) {
       Messages.ExecuteRequest request = (Messages.ExecuteRequest)message;
-      services.processTask(request.getCode(), request);
+      services.processTask(request.getCode(), request.silent(), request.storeHistory(), request);
     }
   }
 

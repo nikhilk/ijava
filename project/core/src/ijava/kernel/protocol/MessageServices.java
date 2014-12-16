@@ -25,9 +25,11 @@ public interface MessageServices {
   /**
    * Processes the specified task within the session from input via the specified message.
    * @param content the text defining the task to be performed.
+   * @param silent whether to generate any output or not.
+   * @param record whether to record the task.
    * @param message the message resulting in the task.
    */
-  public void processTask(String content, Message message);
+  public void processTask(String content, boolean silent, boolean record, Message message);
 
   /**
    * Sends a message to the specified message channel.

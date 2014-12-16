@@ -485,6 +485,10 @@ public class InteractiveShell implements Evaluator {
    */
   @Override
   public Object evaluate(String data, int evaluationID) throws Exception {
+    if (evaluationID == 0) {
+      evaluationID = (int)(new Date()).getTime();
+    }
+
     if (data.startsWith("%")) {
       return invokeExtension(data, evaluationID);
     }

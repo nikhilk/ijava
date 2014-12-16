@@ -202,8 +202,8 @@ public final class Session implements MessageServices {
    * {@link MessageServices}
    */
   @Override
-  public void processTask(String content, Message message) {
-    SessionTask task = new SessionTask(content, message);
+  public void processTask(String content, boolean silent, boolean record, Message message) {
+    SessionTask task = new SessionTask(content, silent, record, message);
     _worker.addTask(task);
   }
 

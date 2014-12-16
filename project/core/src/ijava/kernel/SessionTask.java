@@ -11,15 +11,21 @@ import ijava.kernel.protocol.*;
 public final class SessionTask {
 
   private final String _content;
+  private final boolean _silent;
+  private final boolean _record;
   private final Message _message;
 
   /**
    * Initializes an instance of a SessionTask.
    * @param content the text defining the task to execute.
+   * @param silent whether to generate any output or not.
+   * @param record whether to record the task.
    * @param message the message originating the task.
    */
-  public SessionTask(String content, Message message) {
+  public SessionTask(String content, boolean silent, boolean record, Message message) {
     _content = content;
+    _silent = silent;
+    _record = record;
     _message = message;
   }
 
@@ -37,5 +43,21 @@ public final class SessionTask {
    */
   public Message getMessage() {
     return _message;
+  }
+
+  /**
+   * Whether to record the task processing or not.
+   * @return true if the task should be recorded.
+   */
+  public boolean recordProcessing() {
+    return _record;
+  }
+
+  /**
+   * Whether to process the task silently or not.
+   * @return true if the task should be processed silently.
+   */
+  public boolean requiresSilentProcessing() {
+    return _silent;
   }
 }

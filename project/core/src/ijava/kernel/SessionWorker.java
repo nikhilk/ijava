@@ -43,6 +43,7 @@ public final class SessionWorker implements Runnable {
     }
   }
 
+  @SuppressWarnings("resource")
   private int processTask(SessionTask task, int counter) {
     Message parentMessage = task.getMessage();
     String content = task.getContent();
@@ -73,14 +74,25 @@ public final class SessionWorker implements Runnable {
       // text spew across two different regions... but that doesn't seem to be the case in IPython.
       //
       // The stdin stream is simply disabled, i.e. fail fast if code attempts to read from it.
-      System.setOut(new PrintStream(new PublishingOutputStream(Messages.StreamMessage.STDOUT,
-                                                               parentMessage)));
-      System.setErr(new PrintStream(new PublishingOutputStream(Messages.StreamMessage.STDERR,
-                                                               parentMessage,
-                                                               /* autoFlush */ false)));
+      PrintStream out;
+      PrintStream err;
+
+      if (task.requiresSilentProcessing()) {
+        err = out = new PrintStream(new DisabledOutputStream());
+      }
+      else {
+        out = new PrintStream(new PublishingOutputStream(Messages.StreamMessage.STDOUT,
+                                                         parentMessage));
+        err = new PrintStream(new PublishingOutputStream(Messages.StreamMessage.STDERR,
+                                                         parentMessage,
+                                                         /* autoFlush */ false));
+      }
+      System.setOut(out);
+      System.setErr(err);
       System.setIn(new DisabledInputStream());
 
-      result = _session.getEvaluator().evaluate(task.getContent(), counter);
+      int evaluationID = task.recordProcessing() ? counter : 0;
+      result = _session.getEvaluator().evaluate(task.getContent(), evaluationID);
     }
     catch (EvaluationError e) {
       System.err.println(e.getMessage());
@@ -124,7 +136,7 @@ public final class SessionWorker implements Runnable {
     }
     _session.sendMessage(response.associateChannel(parentMessage.getChannel()));
 
-    return counter + 1;
+    return task.recordProcessing() ? counter + 1 : counter;
   }
 
   /**
@@ -237,6 +249,17 @@ public final class SessionWorker implements Runnable {
       }
 
       _buffer.append((char)b);
+    }
+  }
+
+
+  /**
+   * Implements an OutputStream that discards all generated output.
+   */
+  private final class DisabledOutputStream extends OutputStream {
+
+    @Override
+    public void write(int b) throws IOException {
     }
   }
 
