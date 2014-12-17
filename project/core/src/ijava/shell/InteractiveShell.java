@@ -67,22 +67,18 @@ public class InteractiveShell implements Evaluator {
   public static InteractiveShell create(URL appURL, String spec, String[] dependencies) {
     InteractiveShell shell = null;
 
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    URL[] jars = null;
-
-    if (dependencies != null) {
-      jars = new URL[dependencies.length];
+    URL[] jars = new URL[dependencies.length + 1];
+    try {
       for (int i = 0; i < dependencies.length; i++) {
-        try {
-          jars[i] = new URL(appURL, dependencies[i]);
-        }
-        catch (Exception e) {
-          // TODO: log
-        }
+        jars[i] = new URL(appURL, dependencies[i]);
       }
-
-      classLoader = new URLClassLoader(jars, classLoader);
+      jars[jars.length - 1] = new URL(appURL, "ijavart.jar");
     }
+    catch (Exception e) {
+      // TODO: log
+    }
+
+    ClassLoader classLoader = new URLClassLoader(jars, ClassLoader.getSystemClassLoader());
 
     if ((spec == null) || spec.isEmpty()) {
       shell = new InteractiveShell();
@@ -269,16 +265,7 @@ public class InteractiveShell implements Evaluator {
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
-
-    // Add a dependency to the ijava runtime along with appropriate import.
-    try {
-      URI ijavaDependency = URI.create("file://" + new URL(appURL, "ijavart.jar").getPath());
-      addDependency(ijavaDependency);
-
-      addImport("ijava.ShellHelpers.*", /* staticImport */ true);
-    }
-    catch (MalformedURLException e) {
-    }
+    addImport("ijava.ShellHelpers.*", /* staticImport */ true);
   }
 
   /**
