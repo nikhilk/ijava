@@ -3,6 +3,10 @@
 
 package ijava;
 
+import java.io.*;
+import java.nio.charset.*;
+import java.nio.file.*;
+import java.util.*;
 import ijava.data.*;
 
 /**
@@ -77,7 +81,44 @@ public final class ShellHelpers {
     System.out.println(s);
   }
 
+  public static byte[] readFileBytes(String file) throws IOException {
+    return Files.readAllBytes(Paths.get(file));
+  }
+
+  public static List<String> readFileLines(String file) throws IOException {
+    return Files.readAllLines(Paths.get(file), StandardCharsets.UTF_8);
+  }
+
+  public static String readFileText(String file) throws IOException {
+    return new String(ShellHelpers.readFileBytes(file), StandardCharsets.UTF_8);
+  }
+
   public static JavaScript script(String script) {
     return new JavaScript(script);
+  }
+
+  public static void writeFile(String file, byte[] bytes) throws IOException {
+    Files.write(Paths.get(file), bytes,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+  }
+
+  public static void writeFile(String file, List<String> lines) throws IOException {
+    Files.write(Paths.get(file), lines, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+  }
+
+  public static void writeFile(String file, String[] lines) throws IOException {
+    Files.write(Paths.get(file), Arrays.asList(lines), StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+  }
+
+  public static void writeFile(String file, String text) throws IOException {
+    Files.write(Paths.get(file), text.getBytes());
   }
 }
