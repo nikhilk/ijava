@@ -1,4 +1,4 @@
-// ShellHelpers.java
+// JavaHelpers.java
 //
 
 package ijava;
@@ -12,9 +12,9 @@ import ijava.data.*;
 /**
  * Various helper methods for use in an ijava shell.
  */
-public final class ShellHelpers {
+public final class JavaHelpers {
 
-  private ShellHelpers() {
+  private JavaHelpers() {
   }
 
   public static HTML html(String markup) {
@@ -90,7 +90,7 @@ public final class ShellHelpers {
   }
 
   public static String readFileText(String file) throws IOException {
-    return new String(ShellHelpers.readFileBytes(file), StandardCharsets.UTF_8);
+    return new String(JavaHelpers.readFileBytes(file), StandardCharsets.UTF_8);
   }
 
   public static JavaScript script(String script) {

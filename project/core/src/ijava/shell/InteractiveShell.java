@@ -265,7 +265,7 @@ public class InteractiveShell implements Evaluator {
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
-    addImport("ijava.ShellHelpers.*", /* staticImport */ true);
+    addImport("ijava.JavaHelpers.*", /* staticImport */ true);
   }
 
   /**
