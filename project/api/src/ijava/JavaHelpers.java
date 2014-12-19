@@ -17,8 +17,28 @@ public final class JavaHelpers {
   private JavaHelpers() {
   }
 
+  public static <K, V> Map.Entry<K, V> entry(K key, V value) {
+    return new AbstractMap.SimpleEntry<K, V>(key, value);
+  }
+
   public static HTML html(String markup) {
     return new HTML(markup);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> List<T> list(T... items) {
+    return Arrays.asList(items);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <K, V> Map<K, V> map(Map.Entry<K, V>... entries) {
+    HashMap<K, V> map = new HashMap<K, V>();
+    for (int i = 0; i < entries.length; i++) {
+      Map.Entry<K, V> entry = entries[i];
+      map.put(entry.getKey(), entry.getValue());
+    }
+
+    return map;
   }
 
   public static void print(boolean b) {
@@ -95,6 +115,16 @@ public final class JavaHelpers {
 
   public static JavaScript script(String script) {
     return new JavaScript(script);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> Set<T> set(T... items) {
+    HashSet<T> set = new HashSet<T>();
+    for (int i = 0; i < items.length; i++) {
+      set.add(items[i]);
+    }
+
+    return set;
   }
 
   public static void writeFile(String file, byte[] bytes) throws IOException {
