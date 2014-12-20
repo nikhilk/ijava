@@ -104,6 +104,9 @@ public class InteractiveShell implements Evaluator {
       shell.initialize(appURL, classLoader);
 
       if (jars != null) {
+        // Add each jar as a dependency, so it can be tracked as one. However, don't create
+        // a class loader with the jar, since all these dependencies have already been addded
+        // to a class loader above.
         for (URL jar: jars) {
           URI jarURI = URI.create("file://" + jar.getPath());
           shell.addDependency(jarURI, /* createClassLoader */ false);
