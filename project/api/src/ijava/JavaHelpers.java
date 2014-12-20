@@ -15,6 +15,9 @@ import ijava.data.*;
  */
 public final class JavaHelpers {
 
+  // NOTE: Methods that would be void returning are intentionally setup to return Object, and
+  //       return a null value. This is to allow using these methods as an expression.
+
   private JavaHelpers() {
   }
 
@@ -54,64 +57,79 @@ public final class JavaHelpers {
     return map;
   }
 
-  public static void print(boolean b) {
+  public static Object print(boolean b) {
     System.out.print(b);
+    return null;
   }
 
-  public static void print(char c) {
+  public static Object print(char c) {
     System.out.print(c);
+    return null;
   }
 
-  public static void print(int i) {
+  public static Object print(int i) {
     System.out.print(i);
+    return null;
   }
 
-  public static void print(long n) {
+  public static Object print(long n) {
     System.out.print(n);
+    return null;
   }
 
-  public static void print(double d) {
+  public static Object print(double d) {
     System.out.print(d);
+    return null;
   }
 
-  public static void print(Object o) {
+  public static Object print(Object o) {
     System.out.print(o);
+    return null;
   }
 
-  public static void print(String s) {
+  public static Object print(String s) {
     System.out.print(s);
+    return null;
   }
 
-  public static void printf(String s, Object... args) {
+  public static Object printf(String s, Object... args) {
     System.out.printf(s, args);
+    return null;
   }
 
-  public static void println(boolean b) {
+  public static Object println(boolean b) {
     System.out.println(b);
+    return null;
   }
 
-  public static void println(char c) {
+  public static Object println(char c) {
     System.out.println(c);
+    return null;
   }
 
-  public static void println(int i) {
+  public static Object println(int i) {
     System.out.println(i);
+    return null;
   }
 
-  public static void println(long n) {
+  public static Object println(long n) {
     System.out.println(n);
+    return null;
   }
 
-  public static void println(double d) {
+  public static Object println(double d) {
     System.out.println(d);
+    return null;
   }
 
-  public static void println(Object o) {
+  public static Object println(Object o) {
     System.out.println(o);
+    return null;
   }
 
-  public static void println(String s) {
+  public static Object println(String s) {
     System.out.println(s);
+    return null;
   }
 
   public static byte[] readFileBytes(String file) throws IOException {
@@ -140,28 +158,32 @@ public final class JavaHelpers {
     return set;
   }
 
-  public static void writeFile(String file, byte[] bytes) throws IOException {
+  public static Object writeFile(String file, byte[] bytes) throws IOException {
     Files.write(Paths.get(file), bytes,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE,
                 StandardOpenOption.TRUNCATE_EXISTING);
+    return null;
   }
 
-  public static void writeFile(String file, List<String> lines) throws IOException {
+  public static Object writeFile(String file, List<String> lines) throws IOException {
     Files.write(Paths.get(file), lines, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE,
                 StandardOpenOption.TRUNCATE_EXISTING);
+    return null;
   }
 
-  public static void writeFile(String file, String[] lines) throws IOException {
+  public static Object writeFile(String file, String[] lines) throws IOException {
     Files.write(Paths.get(file), Arrays.asList(lines), StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE,
                 StandardOpenOption.TRUNCATE_EXISTING);
+    return null;
   }
 
-  public static void writeFile(String file, String text) throws IOException {
+  public static Object writeFile(String file, String text) throws IOException {
     Files.write(Paths.get(file), text.getBytes());
+    return null;
   }
 }
