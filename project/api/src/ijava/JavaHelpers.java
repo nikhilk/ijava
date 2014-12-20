@@ -4,6 +4,7 @@
 package ijava;
 
 import java.io.*;
+import java.net.*;
 import java.nio.charset.*;
 import java.nio.file.*;
 import java.util.*;
@@ -23,6 +24,18 @@ public final class JavaHelpers {
 
   public static HTML html(String markup) {
     return new HTML(markup);
+  }
+
+  public static Image image(String url) throws URISyntaxException {
+    return new Image(url);
+  }
+
+  public static Image image(URI uri) {
+    return new Image(uri);
+  }
+
+  public static Image image(byte[] data, String mimeType) {
+    return new Image(data, mimeType);
   }
 
   @SuppressWarnings("unchecked")
