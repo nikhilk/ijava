@@ -158,6 +158,18 @@ public final class JavaHelpers {
     return set;
   }
 
+  public static <T> Table table(T[] items) {
+    return new Table(Arrays.asList(items));
+  }
+
+  public static <T> Table table(List<T> list) {
+    return new Table(list);
+  }
+
+  public static <K, V> Table table(Map<K, V> map) {
+    return new Table(map);
+  }
+
   public static Object writeFile(String file, byte[] bytes) throws IOException {
     Files.write(Paths.get(file), bytes,
                 StandardOpenOption.CREATE,
