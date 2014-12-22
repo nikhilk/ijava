@@ -19,6 +19,7 @@ public final class Table {
   private final Map _map;
 
   private int _limit;
+  private boolean _showTotal;
 
   static {
     ScalarTypes = new HashSet<Class<?>>();
@@ -57,7 +58,18 @@ public final class Table {
    * @return the modified Table object.
    */
   public Table addLimit(int limit) {
+    return addLimit(limit, /* showTotal */ false);
+  }
+
+  /**
+   * Limits the number of items to render.
+   * @param limit the maximum number of items to render in the table.
+   * @param showTotal whether to display the total number of items.
+   * @return the modified Table object.
+   */
+  public Table addLimit(int limit, boolean showTotal) {
     _limit = limit;
+    _showTotal = showTotal;
     return this;
   }
 
@@ -96,7 +108,8 @@ public final class Table {
 
     sb.append("</table>");
 
-    if ((_limit > 0) && (totalCount > _limit)) {
+    if (_showTotal && (_limit > 0) && (totalCount > _limit)) {
+      sb.append("<br />");
       sb.append("<span>");
       sb.append(String.format("Rendered %d of %d items.", _limit, totalCount));
       sb.append("</span>");
