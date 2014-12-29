@@ -181,4 +181,15 @@ public final class Snippet {
   public SnippetType getType() {
     return _type;
   }
+
+  /**
+   * Saves information about this snippet into a metadata dictionary.
+   * @param metadata the metadata dictionary to store information into.
+   */
+  public void generateMetadata(Map<String, Object> metadata) {
+    metadata.put("ijava.snippet.type", _type.toString());
+
+    // TODO: Determine which other pieces of information are useful to send to the client.
+    //       Example: package and class name, member names
+  }
 }

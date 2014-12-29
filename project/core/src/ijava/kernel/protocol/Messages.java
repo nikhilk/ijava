@@ -201,10 +201,25 @@ public final class Messages {
      * @param parentHeader the header of the associated parent message.
      * @param status the status of the execution.
      * @param executionCount the counter representing the execution sequence number.
+     * @param metadata any additional data associated with the message.
      */
-    public ExecuteResponse(String identity, Map<String, Object> parentHeader,
-                           String status, int executionCount) {
-      super(identity, Message.ExecuteResponse, parentHeader);
+    protected ExecuteResponse(String identity, Map<String, Object> parentHeader,
+                              String status, int executionCount) {
+      this(identity, parentHeader, status, executionCount, null);
+    }
+
+    /**
+     * Creates an instance of a ExecuteResponse.
+     * @param identity the identity of the client.
+     * @param parentHeader the header of the associated parent message.
+     * @param status the status of the execution.
+     * @param executionCount the counter representing the execution sequence number.
+     * @param metadata any additional data associated with the message.
+     */
+    protected ExecuteResponse(String identity, Map<String, Object> parentHeader,
+                              String status, int executionCount,
+                              Map<String, Object> metadata) {
+      super(identity, Message.ExecuteResponse, parentHeader, metadata);
 
       Map<String, Object> content = getContent();
       content.put("status", status);
@@ -223,14 +238,17 @@ public final class Messages {
      * @param parentHeader the header of the associated parent message.
      * @param status the status of the execution.
      * @param executionCount the counter representing the execution sequence number.
+     * @param metadata any additional data associated with the message.
      */
     public SuccessExecuteResponse(String identity,
                                   Map<String, Object> parentHeader,
-                                  int executionCount) {
-      super(identity, parentHeader, Messages.ExecuteResponse.SuccessStatus, executionCount);
+                                  int executionCount,
+                                  Map<String, Object> metadata) {
+      super(identity, parentHeader, Messages.ExecuteResponse.SuccessStatus, executionCount,
+            metadata);
 
       Map<String, Object> content = getContent();
-      content.put("payload", new HashMap<String, Object>());
+      content.put("payload", new ArrayList<Object>());
       content.put("user_variables", new HashMap<String, Object>());
       content.put("user_expressions", new HashMap<String, Object>());
     }

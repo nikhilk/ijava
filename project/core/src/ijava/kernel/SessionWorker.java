@@ -46,13 +46,15 @@ public final class SessionWorker implements Runnable {
   @SuppressWarnings("resource")
   private int processTask(SessionTask task, int counter) {
     Message parentMessage = task.getMessage();
+    Map<String, Object> metadata = parentMessage.getMetadata();
     String content = task.getContent();
 
     if (content.isEmpty()) {
       Messages.ExecuteResponse response =
           new Messages.SuccessExecuteResponse(parentMessage.getIdentity(),
                                               parentMessage.getHeader(),
-                                              counter);
+                                              counter,
+                                              metadata);
       _session.sendMessage(response.associateChannel(parentMessage.getChannel()));
 
       // Nothing to execute, so return the counter without incrementing.
@@ -92,7 +94,7 @@ public final class SessionWorker implements Runnable {
       System.setIn(new DisabledInputStream());
 
       int evaluationID = task.recordProcessing() ? counter : 0;
-      result = _session.getEvaluator().evaluate(task.getContent(), evaluationID);
+      result = _session.getEvaluator().evaluate(task.getContent(), evaluationID, metadata);
     }
     catch (EvaluationError e) {
       System.err.println(e.getMessage());
@@ -126,7 +128,8 @@ public final class SessionWorker implements Runnable {
       response =
           new Messages.SuccessExecuteResponse(parentMessage.getIdentity(),
                                               parentMessage.getHeader(),
-                                              counter);
+                                              counter,
+                                              metadata);
     }
     else {
       response =

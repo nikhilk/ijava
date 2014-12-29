@@ -91,9 +91,20 @@ public abstract class Message {
    * @param parentHeader the header of the associated parent message.
    */
   protected Message(String identity, String type, Map<String, Object> parentHeader) {
-    this(identity, Message.createHeader(type), parentHeader,
-         new HashMap<String, Object>(),
-         new HashMap<String, Object>());
+    this(identity, Message.createHeader(type), parentHeader, null, null);
+  }
+
+  /**
+   * Creates and initializes a message from its constituent parts.
+   * @param identity the client identity.
+   * @param type the type of the message.
+   * @param parentHeader the header of the associated parent message.
+   * @param metadata any metadata associated with the message.
+   */
+  protected Message(String identity, String type,
+                    Map<String, Object> parentHeader,
+                    Map<String, Object> metadata) {
+    this(identity, Message.createHeader(type), parentHeader, metadata, null);
   }
 
   /**
@@ -109,6 +120,13 @@ public abstract class Message {
                     Map<String, Object> parentHeader,
                     Map<String, Object> metadata,
                     Map<String, Object> content) {
+    if (metadata == null) {
+      metadata = new HashMap<String, Object>();
+    }
+    if (content == null) {
+      content = new HashMap<String, Object>();
+    }
+
     _identity = identity;
     _header = header;
     _parentHeader = parentHeader;
@@ -224,7 +242,7 @@ public abstract class Message {
    * Gets the metadata associated with the message.
    * @return the metadata object.
    */
-  protected Map<String, Object> getMetadata() {
+  public Map<String, Object> getMetadata() {
     return _metadata;
   }
 

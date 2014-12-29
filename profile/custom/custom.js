@@ -13,3 +13,19 @@ $(function() {
   cmConfig.autoClearEmptyLines = true;
 });
 
+$(function() {
+  // Override execute handler on code cells to copy metadata from ijava kernel into
+  // cell metadata.
+  var originalHandler = IPython.CodeCell.prototype._handle_execute_reply;
+
+  IPython.CodeCell.prototype._handle_execute_reply = function(msg) {
+    originalHandler.call(this, msg);
+
+    var metadata = msg.metadata;
+    for (var n in metadata) {
+      if (n.indexOf('ijava.') === 0) {
+        this.metadata[n] = metadata[n];
+      }
+    }
+  }
+});

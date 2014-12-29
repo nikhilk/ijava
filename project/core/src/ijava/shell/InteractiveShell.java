@@ -276,7 +276,8 @@ public class InteractiveShell implements Evaluator {
    * @param data the evaluation text.
    * @param evaluationID the evaluation sequence number.
    */
-  private Object invokeExtension(String data, int evaluationID) throws Exception {
+  private Object invokeExtension(String data, int evaluationID,
+                                 Map<String, Object> metadata) throws Exception {
     ExtensionDataParser parser = new ExtensionDataParser();
     ExtensionData extensionData = parser.parse(data);
 
@@ -474,13 +475,14 @@ public class InteractiveShell implements Evaluator {
    * {@link Evaluator}
    */
   @Override
-  public Object evaluate(String data, int evaluationID) throws Exception {
+  public Object evaluate(String data, int evaluationID,
+                         Map<String, Object> metadata) throws Exception {
     if (evaluationID == 0) {
       evaluationID = (int)(new Date()).getTime();
     }
 
     if (data.startsWith("%")) {
-      return invokeExtension(data, evaluationID);
+      return invokeExtension(data, evaluationID, metadata);
     }
 
     // Parse the data as code into a Snippet object
@@ -531,6 +533,7 @@ public class InteractiveShell implements Evaluator {
         result = onSnippetEvaluated(snippet, result);
       }
 
+      snippet.generateMetadata(metadata);
       return result;
     }
     else {
