@@ -38,8 +38,9 @@ public class InteractiveShell implements Evaluator {
 
   /**
    * Initializes an instance of an InteractiveShell.
+   * @param state the variables and values managed by the shell.
    */
-  protected InteractiveShell() {
+  protected InteractiveShell(InteractiveState state) {
     _extensions = new HashMap<String, Extension>();
     _resolvers = new HashMap<String, DependencyResolver>();
 
@@ -49,7 +50,7 @@ public class InteractiveShell implements Evaluator {
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
-    _state = new InteractiveState();
+    _state = state;
   }
 
   /**
@@ -81,7 +82,7 @@ public class InteractiveShell implements Evaluator {
     ClassLoader classLoader = new URLClassLoader(jars, ClassLoader.getSystemClassLoader());
 
     if ((spec == null) || spec.isEmpty()) {
-      shell = new InteractiveShell();
+      shell = new InteractiveShell(new InteractiveState());
     }
     else {
       String[] specParts = spec.split(":");
