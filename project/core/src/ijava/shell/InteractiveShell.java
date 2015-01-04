@@ -14,7 +14,7 @@ import ijava.shell.compiler.*;
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public class InteractiveShell implements Evaluator {
+public final class InteractiveShell implements Evaluator {
 
   private final static String ERROR_TYPE_REDECLARED =
       "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
@@ -38,9 +38,8 @@ public class InteractiveShell implements Evaluator {
 
   /**
    * Initializes an instance of an InteractiveShell.
-   * @param state the variables and values managed by the shell.
    */
-  protected InteractiveShell(InteractiveState state) {
+  public InteractiveShell() {
     _commands = new HashMap<String, Command>();
     _resolvers = new HashMap<String, DependencyResolver>();
 
@@ -50,87 +49,9 @@ public class InteractiveShell implements Evaluator {
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
-    _state = state;
-  }
+    _state = new InteractiveState();
 
-  /**
-   * Creates an instance of an InteractiveShell given a shell specification. An empty string
-   * creates the default shell.
-   * 
-   * A specific shell is identified via <relative path to jar>:<class name>.
-   * @param appURL the application path to use to resolve path references.
-   * @param spec the optional shell specification string for a derived shell instance.
-   * @param dependencies a list of jar dependencies to load. Only applicable when there is a
-   *    shell specification.
-   * @return an instance of an InteractiveShell.
-   */
-  @SuppressWarnings({ "unchecked", "resource" })
-  public static InteractiveShell create(URL appURL, String spec, String[] dependencies) {
-    InteractiveShell shell = null;
-
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-
-    URL ijavaRuntimeJar = null;
-    URL[] jars = null;
-    try {
-      ijavaRuntimeJar = new URL(appURL, "ijavart.jar");
-
-      if (dependencies.length != 0) {
-        jars = new URL[dependencies.length];
-
-        for (int i = 0; i < dependencies.length; i++) {
-          jars[i] = new URL(appURL, dependencies[i]);
-        }
-
-        classLoader = new URLClassLoader(jars, classLoader);
-      }
-    }
-    catch (Exception e) {
-      // TODO: log
-    }
-
-    if ((spec == null) || spec.isEmpty()) {
-      shell = new InteractiveShell(new InteractiveState());
-    }
-    else {
-      String[] specParts = spec.split(":");
-      if (specParts.length == 2) {
-        try {
-          ClassLoader shellClassLoader =
-              new URLClassLoader(new URL[] { new URL(appURL, specParts[0]) }, classLoader);
-          Class<? extends InteractiveShell> shellClass =
-              (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
-
-          shell = shellClass.newInstance();
-        }
-        catch (Exception e) {
-          // TODO: Log
-        }
-      }
-    }
-
-    if (shell != null) {
-      shell.initialize(appURL, classLoader);
-
-      // Add ijavart.jar as a dependency, but don't create a corresponding class loader, as
-      // this jar is statically linked in into ijava itself.
-      shell.addDependency(URI.create("file://" + ijavaRuntimeJar.getPath()),
-                          /* createClassLoader */ false);
-
-      if (jars != null) {
-        // Add each jar as a dependency, so it can be tracked as one. However, don't create
-        // a class loader with the jar, since all these dependencies have already been addded
-        // to a class loader above.
-        for (URL jar: jars) {
-          URI jarURI = URI.create("file://" + jar.getPath());
-          shell.addDependency(jarURI, /* createClassLoader */ false);
-        }
-      }
-
-      return shell;
-    }
-
-    return null;
+    _classLoader = ClassLoader.getSystemClassLoader();
   }
 
   /**
@@ -243,6 +164,16 @@ public class InteractiveShell implements Evaluator {
   }
 
   /**
+   * Adds a shell extension to the current shell.
+   * @param name the name of the extension to lookup.
+   * @throws ClassNotFoundException if the specified extension could not be found.
+   * @throws IllegalArgumentException if the specified extension is invalid or could not be added.
+   */
+  public void addExtension(String name) throws ClassNotFoundException, IllegalArgumentException {
+    // TODO: Implement this
+  }
+
+  /**
    * Adds a package to be imported for subsequent compilations.
    * @param importName the package or type to be imported.
    * @param staticImport whether the import should be a static import of a type.
@@ -258,9 +189,9 @@ public class InteractiveShell implements Evaluator {
     _cachedImports = null;
   }
 
-  protected void initialize(URL appURL, ClassLoader classLoader) {
-    _classLoader = classLoader;
-
+  public void initialize(URL appURL,
+                         List<String> dependencies,
+                         List<String> extensions) throws Exception {
     // Register a few java language related commands by default
     registerCommand("dependency", new JavaCommands.DependencyCommand());
     registerCommand("jars", new JavaCommands.JarsCommand());
@@ -283,6 +214,37 @@ public class InteractiveShell implements Evaluator {
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
     addImport("ijava.JavaHelpers.*", /* staticImport */ true);
+
+    // Add ijavart.jar as a dependency, but don't create a corresponding class loader, as
+    // this jar is statically linked in into ijava itself.
+    URL ijavaRuntimeJar = new URL(appURL, "ijavart.jar");
+    addDependency(URI.create("file://" + ijavaRuntimeJar.getPath()),
+                  /* createClassLoader */ false);
+
+    // Load up the dependencies, including the implicitly included ijava runtime
+    if (dependencies.size() != 0) {
+      URL[] jars = new URL[dependencies.size()];
+
+      for (int i = 0; i < dependencies.size(); i++) {
+        jars[i] = new URL(appURL, dependencies.get(i));
+      }
+
+      _classLoader = new URLClassLoader(jars, _classLoader);
+
+      // Add each jar as a dependency, so it can be tracked as one. However, don't create
+      // a class loader with the jar, since all these dependencies have already been addded
+      // to a single class loader above.
+      for (URL jar: jars) {
+        URI jarURI = URI.create("file://" + jar.getPath());
+        addDependency(jarURI, /* createClassLoader */ false);
+      }
+    }
+
+    if (extensions.size() != 0) {
+      for (String name: extensions) {
+        addExtension(name);
+      }
+    }
   }
 
   /**

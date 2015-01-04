@@ -8,7 +8,7 @@ import java.util.*;
 /**
  * Represents the state of the shell, i.e. all the methods, fields and their values.
  */
-public class InteractiveState {
+public final class InteractiveState {
 
   private final Map<String, String> _methods;
   private final Map<String, Set<String>> _fields;
