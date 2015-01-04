@@ -28,19 +28,23 @@ public final class Application {
 
         URL applicationURL = Application.class.getProtectionDomain().getCodeSource().getLocation();
         List<String> dependencies = new ArrayList<String>();
+        List<String> shellDependencies = new ArrayList<String>();
         List<String> extensions = new ArrayList<String>();
 
         for (int i = 1; i < args.length; i += 2) {
-          if (args[i].equals("-d")) {
+          if (args[i].equals("-dep")) {
             dependencies.add(args[i + 1]);
           }
-          else if (args[i].equals("-e")) {
+          else if (args[i].equals("-shellDep")) {
+            shellDependencies.add(args[i + 1]);
+          }
+          else if (args[i].equals("-ext")) {
             extensions.add(args[i + 1]);
           }
         }
 
         InteractiveShell shell = new InteractiveShell();
-        shell.initialize(applicationURL, dependencies, extensions);
+        shell.initialize(applicationURL, dependencies, shellDependencies, extensions);
 
         // TODO: Make this customizable via command line
         Log.initializeLogging(Level.INFO);
@@ -52,7 +56,7 @@ public final class Application {
 
     if (showUsage) {
       System.out.println("Usage:");
-      System.out.println("ijava <connection file> [jars...]");
+      System.out.println("ijava <connection file> [jars...] [exts...]");
       System.out.println();
       System.out.println("Connection file contains JSON formatted data for the following:");
       System.out.println("- ip            the IP address to listen on");
@@ -63,9 +67,14 @@ public final class Application {
       System.out.println("- stdin_port    the socket port for sending input messages");
       System.out.println("- iopub_port    the socket port for sending broadcast messages");
       System.out.println();
-      System.out.println("Jars is a list of dependencies to pre-load at startup.");
-      System.out.println("  <path to jar (relative to ijava)> [0...N]");
+      System.out.println("Jars is an optional list of dependencies to pre-load at startup.");
+      System.out.println("  Each jar is specified as a path relative to the location of ijava.");
+      System.out.println("  -dep <path to runtime dependency>");
+      System.out.println("  -shellDep <path to shell dependency>");
       System.out.println();
+      System.out.println("Exts is an optional list of extensions to pre-load at startup.");
+      System.out.println("  Each extensions is specified using the package-qualified class name.");
+      System.out.println("  -ext <extension class name>");
 
       System.exit(1);
     }

@@ -65,41 +65,6 @@ public final class InteractiveShell implements Shell {
   }
 
   /**
-   * Adds the specified dependency to the shell.
-   * @param uri the URI that identifies the dependency.
-   * @param createClassLoader whether a new class loader should be chained for the loading types
-   *    from the specified dependency.
-   */
-  private void addDependency(URI uri, boolean createClassLoader) throws IllegalArgumentException {
-    String dependencyKey = uri.toString();
-    if (_dependencies.containsKey(dependencyKey)) {
-      return;
-    }
-
-    if (!uri.isAbsolute()) {
-      throw new IllegalArgumentException("The URI used to identify a dependency must be absolute.");
-    }
-
-    DependencyResolver resolver = _resolvers.get(uri.getScheme());
-    if (resolver == null) {
-      throw new IllegalArgumentException("Unknown dependency type '" + uri.getScheme() + "'.");
-    }
-
-    Dependency dependency = new Dependency(uri, resolver.resolve(uri));
-    _dependencies.put(dependencyKey, dependency);
-
-    // Add references to all the jars from the dependency so they can be used during compilation.
-    for (String jar: dependency.getJars()) {
-      _jars.add(jar);
-    }
-
-    if (createClassLoader) {
-      // Chain a class loader to enable loading types from the referenced dependency
-      _classLoader = dependency.createClassLoader(_classLoader);
-    }
-  }
-
-  /**
    * Adds a shell extension to the current shell.
    * @param name the name of the extension to lookup.
    * @return an optional object to indicate the extension was loaded.
@@ -125,8 +90,17 @@ public final class InteractiveShell implements Shell {
     return extensionResult;
   }
 
+  /**
+   * Initializes an instance of an InteractiveShell.
+   * @param appURL the URL of the application, to be used to resolve dependency paths.
+   * @param dependencies the list of dependencies to pre-load, as well as include in compilation.
+   * @param shellDependencies the list of shell-only dependencies to pre-load.
+   * @param extensions the list of extensions to pre-load.
+   * @throws Exception if there is an error during initialization.
+   */
   public void initialize(URL appURL,
                          List<String> dependencies,
+                         List<String> shellDependencies,
                          List<String> extensions) throws Exception {
     // Register the commands offered for shell functionality
     registerCommand("load", new InteractiveCommands.LoadCommand(this));
@@ -142,11 +116,16 @@ public final class InteractiveShell implements Shell {
     registerResolver("file", new JavaResolvers.FileResolver());
     registerResolver("maven", new JavaResolvers.MavenResolver());
 
-    // Add a reference to the default runtime jar
+    // Add a reference to the default java runtime jar as well as the ijava runtime jar.
+    // These don't have to be loaded into a class loader, since they've already been loaded
+    // by the time we get here.
     String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
-    String runtimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
-                                                resourcePath.indexOf("!/"));
-    _jars.add(runtimePath);
+    String javaRuntimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
+                                                    resourcePath.indexOf("!/"));
+    String ijavaRuntimePath = new URL(appURL, "ijavart.jar").getPath();
+
+    _jars.add(javaRuntimePath);
+    _jars.add(ijavaRuntimePath);
 
     // Import a few packages by default
     addImport("java.io.*", /* staticImport */ false);
@@ -154,32 +133,28 @@ public final class InteractiveShell implements Shell {
     addImport("java.net.*", /* staticImport */ false);
     addImport("ijava.JavaHelpers.*", /* staticImport */ true);
 
-    // Add ijavart.jar as a dependency, but don't create a corresponding class loader, as
-    // this jar is statically linked in into ijava itself.
-    URL ijavaRuntimeJar = new URL(appURL, "ijavart.jar");
-    addDependency(URI.create("file://" + ijavaRuntimeJar.getPath()),
-                  /* createClassLoader */ false);
+    // Load up the dependencies - all of them get loaded via a class loader.
+    // Only dependencies are tracked and made available as references during compilation.
+    if (!dependencies.isEmpty() || !shellDependencies.isEmpty()) {
+      URL[] dependencyJars = new URL[dependencies.size() + shellDependencies.size()];
+      int i = 0;
 
-    // Load up the dependencies, including the implicitly included ijava runtime
-    if (dependencies.size() != 0) {
-      URL[] jars = new URL[dependencies.size()];
+      for (String dependency: dependencies) {
+        dependencyJars[i] = new URL(appURL, dependency);
+        _jars.add(dependencyJars[i].getPath());
 
-      for (int i = 0; i < dependencies.size(); i++) {
-        jars[i] = new URL(appURL, dependencies.get(i));
+        i++;
       }
 
-      _classLoader = new URLClassLoader(jars, _classLoader);
-
-      // Add each jar as a dependency, so it can be tracked as one. However, don't create
-      // a class loader with the jar, since all these dependencies have already been addded
-      // to a single class loader above.
-      for (URL jar: jars) {
-        URI jarURI = URI.create("file://" + jar.getPath());
-        addDependency(jarURI, /* createClassLoader */ false);
+      for (String dependency: shellDependencies) {
+        dependencyJars[i] = new URL(appURL, dependency);
+        i++;
       }
+
+      _classLoader = new URLClassLoader(dependencyJars, _classLoader);
     }
 
-    if (extensions.size() != 0) {
+    if (!extensions.isEmpty()) {
       for (String name: extensions) {
         addExtension(name);
       }
@@ -523,7 +498,30 @@ public final class InteractiveShell implements Shell {
    */
   @Override
   public void addDependency(URI uri) throws IllegalArgumentException {
-    addDependency(uri, /* createClassLoader */ true);
+    String dependencyKey = uri.toString();
+    if (_dependencies.containsKey(dependencyKey)) {
+      return;
+    }
+
+    if (!uri.isAbsolute()) {
+      throw new IllegalArgumentException("The URI used to identify a dependency must be absolute.");
+    }
+
+    DependencyResolver resolver = _resolvers.get(uri.getScheme());
+    if (resolver == null) {
+      throw new IllegalArgumentException("Unknown dependency type '" + uri.getScheme() + "'.");
+    }
+
+    Dependency dependency = new Dependency(uri, resolver.resolve(uri));
+    _dependencies.put(dependencyKey, dependency);
+
+    // Add references to all the jars from the dependency so they can be used during compilation.
+    for (String jar: dependency.getJars()) {
+      _jars.add(jar);
+    }
+
+    // Chain a class loader to enable loading types from the referenced dependency
+    _classLoader = dependency.createClassLoader(_classLoader);
   }
 
   /**
