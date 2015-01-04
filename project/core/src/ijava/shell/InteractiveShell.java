@@ -100,11 +100,20 @@ public final class InteractiveShell implements Shell {
   /**
    * Adds a shell extension to the current shell.
    * @param name the name of the extension to lookup.
-   * @throws ClassNotFoundException if the specified extension could not be found.
-   * @throws IllegalArgumentException if the specified extension is invalid or could not be added.
+   * @return an optional object to indicate the extension was loaded.
+   * @throws Exception if the specified extension could not be found or is invalid.
    */
-  public void addExtension(String name) throws ClassNotFoundException, IllegalArgumentException {
-    // TODO: Implement this
+  public Object addExtension(String name) throws Exception {
+    Class<?> extensionInterface = ShellExtension.class;
+    Class<?> extensionClass = _classLoader.loadClass(name);
+
+    if (!extensionInterface.isAssignableFrom(extensionClass)) {
+      throw new IllegalArgumentException("The specified name '" + name +
+          "' is not a valid extension.");
+    }
+
+    ShellExtension extension = (ShellExtension)extensionClass.newInstance();
+    return extension.initialize(this);
   }
 
   public void initialize(URL appURL,

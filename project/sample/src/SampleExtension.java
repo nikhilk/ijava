@@ -5,8 +5,10 @@ import ijava.extensibility.*;
 public final class SampleExtension implements ShellExtension {
 
   @Override
-  public void initialize(Shell shell) {
+  public Object initialize(Shell shell) {
     shell.declareVariable("sample", "String");
     shell.setVariable("sample", "Hello World!");
+
+    return null;
   }
 }
