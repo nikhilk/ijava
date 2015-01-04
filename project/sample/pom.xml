@@ -23,7 +23,7 @@
   <dependencies>
     <dependency>
       <groupId>net.nikhilk.ijava</groupId>
-      <artifactId>core</artifactId>
+      <artifactId>api</artifactId>
       <version>0.1</version>
     </dependency>
   </dependencies>
