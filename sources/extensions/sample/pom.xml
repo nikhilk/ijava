@@ -7,18 +7,26 @@
     <groupId>net.nikhilk</groupId>
     <artifactId>ijava</artifactId>
     <version>0.1</version>
+    <relativePath>../..</relativePath>
   </parent>
   <groupId>net.nikhilk.ijava</groupId>
-  <artifactId>api</artifactId>
+  <artifactId>extensions-sample</artifactId>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <build>
-    <directory>${project.basedir}/target</directory>
+    <directory>${project.basedir}/../../../build/outputs/extensions/sample</directory>
     <sourceDirectory>${project.basedir}/src</sourceDirectory>
     <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
   </build>
+  <dependencies>
+    <dependency>
+      <groupId>net.nikhilk.ijava</groupId>
+      <artifactId>api</artifactId>
+      <version>0.1</version>
+    </dependency>
+  </dependencies>
 </project>
 

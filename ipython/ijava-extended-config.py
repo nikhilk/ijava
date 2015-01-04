@@ -1,4 +1,4 @@
-# IPython Configuration
+# IPython Configuration for ijava extended with shell extensions
 
 import os
 
@@ -6,7 +6,12 @@ c = get_config()
 
 # Kernel setup
 kernel_path = os.path.join(os.path.dirname(__file__), '..', 'build', 'ijava')
-c.KernelManager.kernel_cmd = [ kernel_path, '{connection_file}' ]
+c.KernelManager.kernel_cmd = [
+  kernel_path,
+  '{connection_file}',
+  '-ext', 'SampleExtension',
+  '-shellDep', 'extensions-sample.jar'
+]
 
 # Protocol signing settings
 c.Session.key = b''

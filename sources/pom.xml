@@ -12,8 +12,7 @@
   <modules>
     <module>api</module>
     <module>core</module>
-    <module>app</module>
-    <module>sample</module>
+    <module>extensions/sample</module>
   </modules>
 
   <properties>

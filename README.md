@@ -4,8 +4,8 @@ Adding the 'i' to Java.
 
 ## Using
 
-- Running the Python sample (cd spec && ./ipy.sh)
-- Running ijava (cd project && ./build.sh && ./run.sh)
+- Install maven (if you don't have it already)
+- Running ijava (cd tools && ./build.sh && ./run.sh)
 
 ## References
 
