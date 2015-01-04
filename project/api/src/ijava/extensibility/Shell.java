@@ -12,6 +12,18 @@ import java.util.*;
 public interface Shell extends Evaluator {
 
   /**
+   * Gets the set of imports declared in the shell.
+   * @return the list of imports.
+   */
+  public String getImports();
+
+  /**
+   * Gets the set of jars referenced in the shell.
+   * @return the list of jars.
+   */
+  public String[] getReferences();
+
+  /**
    * Gets the specified type defined or referenced within the shell.
    * @param name the name of the type to lookup.
    * @return the resulting class, or null if not found.

@@ -8,13 +8,13 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
-import ijava.*;
+import ijava.extensibility.*;
 import ijava.shell.compiler.*;
 
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public final class InteractiveShell implements Evaluator {
+public final class InteractiveShell implements Shell {
 
   private final static String ERROR_TYPE_REDECLARED =
       "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
@@ -55,77 +55,11 @@ public final class InteractiveShell implements Evaluator {
   }
 
   /**
-   * Gets the set of imports declared in the shell.
-   * @return the list of imports.
-   */
-  public String getImports() {
-    if (_cachedImports == null) {
-      StringBuilder sb = new StringBuilder();
-
-      for (String s : _imports) {
-        sb.append(String.format("import %s;", s));
-      }
-      for (String s : _staticImports) {
-        sb.append(String.format("import static %s;", s));
-      }
-
-      _cachedImports = sb.toString();
-    }
-
-    return _cachedImports;
-  }
-
-  /**
-   * Gets the set of jars referenced in the shell.
-   * @return the list of jars.
-   */
-  public String[] getJars() {
-    String[] jars = new String[_jars.size()];
-    jars = _jars.toArray(jars);
-
-    for (int i = 0; i < jars.length; i++) {
-      jars[i] = Paths.get(jars[i]).toFile().getName();
-    }
-
-    return jars;
-  }
-
-  /**
    * Gets the current set of variables declared in the shell.
    * @return a set of name/value pairs.
    */
   public InteractiveState getState() {
     return _state;
-  }
-
-  /**
-   * Gets the specified type defined or referenced within the shell.
-   * @param name the name of the type to lookup.
-   * @return the resulting class, or null if not found.
-   */
-  public Class<?> getType(String name) {
-    try {
-      return _classLoader.loadClass(name);
-    }
-    catch (ClassNotFoundException e) {
-      return null;
-    }
-  }
-
-  /**
-   * Gets the set of type names defined within the shell.
-   * @return the set of declared type names.
-   */
-  public Set<String> getTypeNames() {
-    return _types.keySet();
-  }
-
-  /**
-   * Adds the specified dependency to the shell.
-   * @param uri the URI that identifies the dependency.
-   */
-  public void addDependency(URI uri) throws IllegalArgumentException {
-    addDependency(uri, /* createClassLoader */ true);
   }
 
   /**
@@ -149,7 +83,7 @@ public final class InteractiveShell implements Evaluator {
       throw new IllegalArgumentException("Unknown dependency type '" + uri.getScheme() + "'.");
     }
 
-    Dependency dependency = resolver.resolve(uri);
+    Dependency dependency = new Dependency(uri, resolver.resolve(uri));
     _dependencies.put(dependencyKey, dependency);
 
     // Add references to all the jars from the dependency so they can be used during compilation.
@@ -173,31 +107,15 @@ public final class InteractiveShell implements Evaluator {
     // TODO: Implement this
   }
 
-  /**
-   * Adds a package to be imported for subsequent compilations.
-   * @param importName the package or type to be imported.
-   * @param staticImport whether the import should be a static import of a type.
-   */
-  public void addImport(String importName, boolean staticImport) {
-    if (staticImport) {
-      _staticImports.add(importName);
-    }
-    else {
-      _imports.add(importName);
-    }
-
-    _cachedImports = null;
-  }
-
   public void initialize(URL appURL,
                          List<String> dependencies,
                          List<String> extensions) throws Exception {
     // Register a few java language related commands by default
-    registerCommand("dependency", new JavaCommands.DependencyCommand());
-    registerCommand("jars", new JavaCommands.JarsCommand());
-    registerCommand("imports", new JavaCommands.ImportsCommand());
-    registerCommand("text", new JavaCommands.TextCommand());
-    registerCommand("json", new JavaCommands.JsonCommand());
+    registerCommand("dependency", new JavaCommands.DependencyCommand(this));
+    registerCommand("jars", new JavaCommands.JarsCommand(this));
+    registerCommand("imports", new JavaCommands.ImportsCommand(this));
+    registerCommand("text", new JavaCommands.TextCommand(this));
+    registerCommand("json", new JavaCommands.JsonCommand(this));
 
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
@@ -267,8 +185,8 @@ public final class InteractiveShell implements Evaluator {
       throw new EvaluationError("Invalid syntax. Unknown command identifier '" + name + "'");
     }
 
-    return command.evaluate(this, evaluationID,
-                            commandData.getArguments(), commandData.getContent());
+    return command.evaluate(commandData.getArguments(), commandData.getContent(), evaluationID,
+                            metadata);
   }
 
   /**
@@ -319,7 +237,7 @@ public final class InteractiveShell implements Evaluator {
 
     // Initialize the callable code instance with any current state
     boolean staleState = false;
-    for (String variable: _state.getNames()) {
+    for (String variable: _state.getFields()) {
       Field field = snippetClass.getDeclaredField(variable);
       Object value = _state.getValue(variable);
 
@@ -367,7 +285,7 @@ public final class InteractiveShell implements Evaluator {
 
     // Now extract any new/updated state to be tracked for use in future evaluations.
     Class<?> instanceClass = instance.getClass();
-    for (String name: _state.getNames()) {
+    for (String name: _state.getFields()) {
       try {
         Field field = instanceClass.getDeclaredField(name);
         field.setAccessible(true);
@@ -427,24 +345,6 @@ public final class InteractiveShell implements Evaluator {
       // Create a new class loader parented to the current one for the newly defined classes
       _classLoader = new ShellClassLoader(_classLoader, id, newNames);
     }
-  }
-
-  /**
-   * Registers a command so it may be invoked within the shell.
-   * @param name the name of the command used in invoking it.
-   * @param command the Command implementation to be registered.
-   */
-  public void registerCommand(String name, Command command) {
-    _commands.put(name, command);
-  }
-
-  /**
-   * Registers a resolver that can be used to resolve dependency URIs.
-   * @param name the name of the resolver, used to match against scheme in dependency URIs.
-   * @param resolver the resolver instance to register.
-   */
-  public void registerResolver(String name, DependencyResolver resolver) {
-    _resolvers.put(name, resolver);
   }
 
   /**
@@ -522,6 +422,144 @@ public final class InteractiveShell implements Evaluator {
 
       throw new EvaluationError(errorBuilder.toString());
     }
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public String getImports() {
+    if (_cachedImports == null) {
+      StringBuilder sb = new StringBuilder();
+
+      for (String s : _imports) {
+        sb.append(String.format("import %s;", s));
+      }
+      for (String s : _staticImports) {
+        sb.append(String.format("import static %s;", s));
+      }
+
+      _cachedImports = sb.toString();
+    }
+
+    return _cachedImports;
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public String[] getReferences() {
+    String[] jars = new String[_jars.size()];
+    jars = _jars.toArray(jars);
+
+    for (int i = 0; i < jars.length; i++) {
+      jars[i] = Paths.get(jars[i]).toFile().getName();
+    }
+
+    return jars;
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Class<?> getType(String name) {
+    try {
+      return _classLoader.loadClass(name);
+    }
+    catch (ClassNotFoundException e) {
+      return null;
+    }
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Set<String> getTypeNames() {
+    return _types.keySet();
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Object getVariable(String name) {
+    return _state.getValue(name);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Set<String> getVariableNames() {
+    return _state.getFields();
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void addDependency(URI uri) throws IllegalArgumentException {
+    addDependency(uri, /* createClassLoader */ true);
+  }
+
+  /**
+   * Adds a package to be imported for subsequent compilations.
+   * @param importName the package or type to be imported.
+   * @param staticImport whether the import should be a static import of a type.
+   */
+  @Override
+  public void addImport(String importName, boolean staticImport) {
+    if (staticImport) {
+      _staticImports.add(importName);
+    }
+    else {
+      _imports.add(importName);
+    }
+
+    _cachedImports = null;
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void declareVariable(String name, String type) {
+    _state.declareField(name, type);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void registerCommand(String name, Command command) {
+    _commands.put(name, command);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void registerResolver(String name, DependencyResolver resolver) {
+    _resolvers.put(name, resolver);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void resetVariable(String name) throws IllegalArgumentException {
+    _state.resetValue(name);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void setVariable(String name, Object value) throws IllegalArgumentException {
+    _state.setValue(name, value);
   }
 
 

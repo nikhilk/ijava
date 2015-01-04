@@ -68,7 +68,7 @@ public final class InteractiveState {
    * Gets the set of names of all declared fields.
    * @return the set of names.
    */
-  public Set<String> getNames() {
+  public Set<String> getFields() {
     return _values.keySet();
   }
 
