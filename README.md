@@ -11,3 +11,4 @@ Adding the 'i' to Java.
 
 - IPython (http://ipython.org/)
 - IPython messaging spec (http://ipython.org/ipython-doc/stable/development/messaging.html)
+- Minimal python implementation (https://gist.github.com/nikhilk/80e935cbbc277145cd2c)
