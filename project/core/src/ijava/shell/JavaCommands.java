@@ -1,4 +1,4 @@
-// JavaExtensions.java
+// JavaCommands.java
 //
 
 package ijava.shell;
@@ -8,17 +8,17 @@ import java.util.*;
 import com.fasterxml.jackson.jr.ob.*;
 
 /**
- * Standard Java-language related extensions.
+ * Standard Java-language related commands.
  */
-public final class JavaExtensions {
+public final class JavaCommands {
 
-  private JavaExtensions() {
+  private JavaCommands() {
   }
 
   /**
    * Handles %dependency invocations to add dependencies to modules to subsequent compilations.
    */
-  public static final class DependencyExtension implements Extension {
+  public static final class DependencyCommand implements Command {
 
     @Override
     public Object evaluate(InteractiveShell shell, int evaluationID,
@@ -35,7 +35,7 @@ public final class JavaExtensions {
   /**
    * Handles %jars invocations to list the current set of jar dependencies.
    */
-  public static final class JarsExtension implements Extension {
+  public static final class JarsCommand implements Command {
 
     @Override
     public Object evaluate(InteractiveShell shell, int evaluationID,
@@ -56,7 +56,7 @@ public final class JavaExtensions {
   /**
    * Handles %imports invocations to list the current set of imports.
    */
-  public static final class ImportsExtension implements Extension {
+  public static final class ImportsCommand implements Command {
 
     @Override
     public Object evaluate(InteractiveShell shell, int evaluationID,
@@ -77,7 +77,7 @@ public final class JavaExtensions {
   /**
    * Handles %%text invocations to create a String instance.
    */
-  public static final class TextExtension implements Extension {
+  public static final class TextCommand implements Command {
 
     @Override
     public Object evaluate(InteractiveShell shell, int evaluationID,
@@ -97,7 +97,7 @@ public final class JavaExtensions {
   /**
    * Handles %%json invocations to parse a JSON formatted data.
    */
-  public static final class JsonExtension implements Extension {
+  public static final class JsonCommand implements Command {
 
     @Override
     public Object evaluate(InteractiveShell shell, int evaluationID,

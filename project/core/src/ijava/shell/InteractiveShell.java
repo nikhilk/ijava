@@ -21,7 +21,7 @@ public class InteractiveShell implements Evaluator {
           "Please run the code to re-initialize that variable first, or simply re-run this code " +
           "to ignore the error and discard it.";
 
-  private final HashMap<String, Extension> _extensions;
+  private final HashMap<String, Command> _commands;
   private final HashMap<String, DependencyResolver> _resolvers;
 
   private final HashMap<String, Dependency> _dependencies;
@@ -41,7 +41,7 @@ public class InteractiveShell implements Evaluator {
    * @param state the variables and values managed by the shell.
    */
   protected InteractiveShell(InteractiveState state) {
-    _extensions = new HashMap<String, Extension>();
+    _commands = new HashMap<String, Command>();
     _resolvers = new HashMap<String, DependencyResolver>();
 
     _dependencies = new HashMap<String, Dependency>();
@@ -248,12 +248,12 @@ public class InteractiveShell implements Evaluator {
   protected void initialize(URL appURL, ClassLoader classLoader) {
     _classLoader = classLoader;
 
-    // Register a few extensions by default
-    registerExtension("dependency", new JavaExtensions.DependencyExtension());
-    registerExtension("jars", new JavaExtensions.JarsExtension());
-    registerExtension("imports", new JavaExtensions.ImportsExtension());
-    registerExtension("text", new JavaExtensions.TextExtension());
-    registerExtension("json", new JavaExtensions.JsonExtension());
+    // Register a few java language related commands by default
+    registerCommand("dependency", new JavaCommands.DependencyCommand());
+    registerCommand("jars", new JavaCommands.JarsCommand());
+    registerCommand("imports", new JavaCommands.ImportsCommand());
+    registerCommand("text", new JavaCommands.TextCommand());
+    registerCommand("json", new JavaCommands.JsonCommand());
 
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
@@ -273,27 +273,27 @@ public class InteractiveShell implements Evaluator {
   }
 
   /**
-   * Invokes an extension for the specified evaluation.
+   * Invokes a command for the specified evaluation input.
    * @param data the evaluation text.
    * @param evaluationID the evaluation sequence number.
    */
-  private Object invokeExtension(String data, int evaluationID,
-                                 Map<String, Object> metadata) throws Exception {
-    ExtensionDataParser parser = new ExtensionDataParser();
-    ExtensionData extensionData = parser.parse(data);
+  private Object invokeCommand(String data, int evaluationID,
+                               Map<String, Object> metadata) throws Exception {
+    CommandDataParser parser = new CommandDataParser();
+    CommandData commandData = parser.parse(data);
 
-    if (extensionData == null) {
+    if (commandData == null) {
       throw new EvaluationError("Invalid syntax.");
     }
 
-    String name = extensionData.getName();
-    Extension extension = _extensions.get(name);
-    if (extension == null) {
-      throw new EvaluationError("Invalid syntax. Unknown identifier '" + name + "'");
+    String name = commandData.getName();
+    Command command = _commands.get(name);
+    if (command == null) {
+      throw new EvaluationError("Invalid syntax. Unknown command identifier '" + name + "'");
     }
 
-    return extension.evaluate(this, evaluationID,
-                              extensionData.getDeclaration(), extensionData.getContent());
+    return command.evaluate(this, evaluationID,
+                            commandData.getArguments(), commandData.getContent());
   }
 
   /**
@@ -455,12 +455,12 @@ public class InteractiveShell implements Evaluator {
   }
 
   /**
-   * Registers an extension so it may be invoked.
-   * @param name the name of the extension used in invoking it.
-   * @param extension the extension to be registered.
+   * Registers a command so it may be invoked within the shell.
+   * @param name the name of the command used in invoking it.
+   * @param command the Command implementation to be registered.
    */
-  public void registerExtension(String name, Extension extension) {
-    _extensions.put(name, extension);
+  public void registerCommand(String name, Command command) {
+    _commands.put(name, command);
   }
 
   /**
@@ -483,7 +483,7 @@ public class InteractiveShell implements Evaluator {
     }
 
     if (data.startsWith("%")) {
-      return invokeExtension(data, evaluationID, metadata);
+      return invokeCommand(data, evaluationID, metadata);
     }
 
     // Parse the data as code into a Snippet object

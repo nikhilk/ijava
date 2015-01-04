@@ -1,4 +1,4 @@
-// ExtensionData.java
+// CommandData.java
 //
 
 package ijava.shell;
@@ -6,58 +6,58 @@ package ijava.shell;
 import java.util.*;
 
 /**
- * Represents the data for an extension invocation.
+ * Represents the data for an command invocation.
  */
-public final class ExtensionData {
+public final class CommandData {
 
   private final String _name;
-  private final String _declaration;
+  private final String _arguments;
   private final String _content;
 
   /**
-   * Initializes an instance of an ExtensionData.
-   * @param name the name of the extension.
-   * @param declaration the declaration for the extension.
-   * @param content the content for the extension.
+   * Initializes an instance of an CommandData.
+   * @param name the name of the command to evaluate.
+   * @param arguments the arguments to the command.
+   * @param content the content for the command.
    */
-  public ExtensionData(String name, String declaration, String content) {
+  public CommandData(String name, String arguments, String content) {
     _name = name;
-    _declaration = declaration;
+    _arguments = arguments;
     _content = content;
   }
 
   /**
-   * Gets the content associated with the extension.
-   * @return the content for the extension.
+   * Gets the arguments associated with the command.
+   * @return the arguments for the command.
+   */
+  public String getArguments() {
+    return _arguments;
+  }
+
+  /**
+   * Gets the content associated with the command.
+   * @return the content for the command.
    */
   public String getContent() {
     return _content;
   }
 
   /**
-   * Gets the declaration associated with the extension.
-   * @return the declaration for the extension.
-   */
-  public String getDeclaration() {
-    return _declaration;
-  }
-
-  /**
-   * Gets the name of the extension to be invoked.
-   * @return the name of the extension.
+   * Gets the name of the command to be invoked.
+   * @return the name of the command.
    */
   public String getName() {
     return _name;
   }
 
   /**
-   * Parses the declaration into a set of options, as if it were a set of command-line args.
+   * Parses the arguments into a set of options.
    * @return the parsed set of flags.
    */
   public Map<String, Object> parseOptions() {
     HashMap<String, Object> options = new HashMap<String, Object>();
 
-    String[] args = _declaration.split(" ");
+    String[] args = _arguments.split(" ");
     int i = 0;
 
     while (i < args.length) {

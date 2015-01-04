@@ -8,7 +8,7 @@ import ijava.shell.*;
 public class Shell extends InteractiveShell {
 
   public Shell() {
-    super();
+    super(new InteractiveState());
 
     InteractiveState state = getState();
     state.declareField("sample", "String");
