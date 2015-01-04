@@ -23,6 +23,7 @@ public final class InteractiveShell implements Shell {
 
   private final HashMap<String, Command> _commands;
   private final HashMap<String, DependencyResolver> _resolvers;
+  private final HashMap<String, Object> _extensions;
 
   private final HashMap<String, Dependency> _dependencies;
   private final HashSet<String> _jars;
@@ -42,6 +43,7 @@ public final class InteractiveShell implements Shell {
   public InteractiveShell() {
     _commands = new HashMap<String, Command>();
     _resolvers = new HashMap<String, DependencyResolver>();
+    _extensions = new HashMap<String, Object>();
 
     _dependencies = new HashMap<String, Dependency>();
     _jars = new HashSet<String>();
@@ -104,6 +106,10 @@ public final class InteractiveShell implements Shell {
    * @throws Exception if the specified extension could not be found or is invalid.
    */
   public Object addExtension(String name) throws Exception {
+    if (_extensions.containsKey(name)) {
+      return _extensions.get(name);
+    }
+
     Class<?> extensionInterface = ShellExtension.class;
     Class<?> extensionClass = _classLoader.loadClass(name);
 
@@ -113,12 +119,18 @@ public final class InteractiveShell implements Shell {
     }
 
     ShellExtension extension = (ShellExtension)extensionClass.newInstance();
-    return extension.initialize(this);
+    Object extensionResult = extension.initialize(this);
+
+    _extensions.put(name, extensionResult);
+    return extensionResult;
   }
 
   public void initialize(URL appURL,
                          List<String> dependencies,
                          List<String> extensions) throws Exception {
+    // Register the commands offered for shell functionality
+    registerCommand("load", new InteractiveCommands.LoadCommand(this));
+
     // Register a few java language related commands by default
     registerCommand("dependency", new JavaCommands.DependencyCommand(this));
     registerCommand("jars", new JavaCommands.JarsCommand(this));
