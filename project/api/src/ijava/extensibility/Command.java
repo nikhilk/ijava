@@ -1,7 +1,9 @@
 // Command.java
 //
 
-package ijava.shell;
+package ijava.extensibility;
+
+import java.util.*;
 
 /**
  * Implemented by shell commands to handle evaluation requests.
@@ -10,13 +12,13 @@ public interface Command {
 
   /**
    * Evaluates the command to perform its associated action.
-   * @param shell the shell that this command is registered with.
    * @param arguments the set of arguments passed to the command.
+   * @param data the optional remaining data to be used during command evaluation.
    * @param evaluationID the evaluation sequence number.
-   * @param content the optional remaining data to be used during command evaluation.
+   * @param metadata any metadata associated with the evaluation.
    * @return an optional object result.
    * @throws Exception if there is an error during evaluation.
    */
-  public Object evaluate(InteractiveShell shell, int evaluationID,
-                         String declaration, String content) throws Exception;
+  public Object evaluate(String arguments, String data, int evaluationID,
+                         Map<String, Object> metadata) throws Exception;
 }

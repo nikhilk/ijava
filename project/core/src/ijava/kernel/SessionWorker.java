@@ -5,7 +5,7 @@ package ijava.kernel;
 
 import java.io.*;
 import java.util.*;
-import ijava.*;
+import ijava.extensibility.*;
 import ijava.kernel.protocol.*;
 
 /**

@@ -18,15 +18,6 @@ public final class Dependency {
   /**
    * Initializes an instance of a Dependency.
    * @param uri the URI used to identify the dependency.
-   * @param jar the local file path of the associated jar.
-   */
-  public Dependency(URI uri, String jar) {
-    this(uri, Arrays.asList(jar));
-  }
-
-  /**
-   * Initializes an instance of a Dependency.
-   * @param uri the URI used to identify the dependency.
    * @param jars the local file path of the associated jars.
    */
   public Dependency(URI uri, List<String> jars) {

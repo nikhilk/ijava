@@ -7,6 +7,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
+import ijava.extensibility.*;
 
 /**
  * Standard Java-language related resolvers.
@@ -17,7 +18,7 @@ public final class JavaResolvers {
   }
 
   /**
-   * Resolves dependencies repesenting jar files.
+   * Resolves dependencies representing jar files.
    */
   public static final class FileResolver implements DependencyResolver {
 
@@ -25,7 +26,7 @@ public final class JavaResolvers {
      * {@link DependencyResolver}
      */
     @Override
-    public Dependency resolve(URI uri) throws IllegalArgumentException {
+    public List<String> resolve(URI uri) throws IllegalArgumentException {
       Path path = null;
 
       try {
@@ -42,7 +43,7 @@ public final class JavaResolvers {
             "The URL must refer to a .jar file.");
       }
 
-      return new Dependency(uri, file.getPath());
+      return Arrays.asList(file.getPath());
     }
   }
 
@@ -55,7 +56,7 @@ public final class JavaResolvers {
      * {@link DependencyResolver}
      */
     @Override
-    public Dependency resolve(URI uri) throws IllegalArgumentException {
+    public List<String> resolve(URI uri) throws IllegalArgumentException {
       String[] pathParts = uri.getPath().split("/");
       if (pathParts.length != 4) {
         throw new IllegalArgumentException("Invalid maven artifact reference. " +
@@ -76,7 +77,7 @@ public final class JavaResolvers {
         throw new IllegalArgumentException("Could not resolve the specified maven artifact.");
       }
 
-      return new Dependency(uri, jars);
+      return jars;
     }
   }
 }

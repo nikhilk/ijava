@@ -7,7 +7,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
-import ijava.*;
+import ijava.extensibility.*;
 import ijava.kernel.protocol.*;
 
 /**

@@ -8,13 +8,13 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
-import ijava.*;
+import ijava.extensibility.*;
 import ijava.shell.compiler.*;
 
 /**
  * Provides the interactive shell or REPL functionality for Java.
  */
-public class InteractiveShell implements Evaluator {
+public final class InteractiveShell implements Shell {
 
   private final static String ERROR_TYPE_REDECLARED =
       "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
@@ -23,6 +23,7 @@ public class InteractiveShell implements Evaluator {
 
   private final HashMap<String, Command> _commands;
   private final HashMap<String, DependencyResolver> _resolvers;
+  private final HashMap<String, Object> _extensions;
 
   private final HashMap<String, Dependency> _dependencies;
   private final HashSet<String> _jars;
@@ -38,11 +39,11 @@ public class InteractiveShell implements Evaluator {
 
   /**
    * Initializes an instance of an InteractiveShell.
-   * @param state the variables and values managed by the shell.
    */
-  protected InteractiveShell(InteractiveState state) {
+  public InteractiveShell() {
     _commands = new HashMap<String, Command>();
     _resolvers = new HashMap<String, DependencyResolver>();
+    _extensions = new HashMap<String, Object>();
 
     _dependencies = new HashMap<String, Dependency>();
     _jars = new HashSet<String>();
@@ -50,110 +51,9 @@ public class InteractiveShell implements Evaluator {
     _staticImports = new HashSet<String>();
     _packages = new HashSet<String>();
     _types = new HashMap<String, byte[]>();
-    _state = state;
-  }
+    _state = new InteractiveState();
 
-  /**
-   * Creates an instance of an InteractiveShell given a shell specification. An empty string
-   * creates the default shell.
-   * 
-   * A specific shell is identified via <relative path to jar>:<class name>.
-   * @param appURL the application path to use to resolve path references.
-   * @param spec the optional shell specification string for a derived shell instance.
-   * @param dependencies a list of jar dependencies to load. Only applicable when there is a
-   *    shell specification.
-   * @return an instance of an InteractiveShell.
-   */
-  @SuppressWarnings({ "unchecked", "resource" })
-  public static InteractiveShell create(URL appURL, String spec, String[] dependencies) {
-    InteractiveShell shell = null;
-
-    URL[] jars = new URL[dependencies.length + 1];
-    try {
-      for (int i = 0; i < dependencies.length; i++) {
-        jars[i] = new URL(appURL, dependencies[i]);
-      }
-      jars[jars.length - 1] = new URL(appURL, "ijavart.jar");
-    }
-    catch (Exception e) {
-      // TODO: log
-    }
-
-    ClassLoader classLoader = new URLClassLoader(jars, ClassLoader.getSystemClassLoader());
-
-    if ((spec == null) || spec.isEmpty()) {
-      shell = new InteractiveShell(new InteractiveState());
-    }
-    else {
-      String[] specParts = spec.split(":");
-      if (specParts.length == 2) {
-        try {
-          ClassLoader shellClassLoader =
-              new URLClassLoader(new URL[] { new URL(appURL, specParts[0]) }, classLoader);
-          Class<? extends InteractiveShell> shellClass =
-              (Class<? extends InteractiveShell>)shellClassLoader.loadClass(specParts[1]);
-
-          shell = shellClass.newInstance();
-        }
-        catch (Exception e) {
-          // TODO: Log
-        }
-      }
-    }
-
-    if (shell != null) {
-      shell.initialize(appURL, classLoader);
-
-      if (jars != null) {
-        // Add each jar as a dependency, so it can be tracked as one. However, don't create
-        // a class loader with the jar, since all these dependencies have already been addded
-        // to a class loader above.
-        for (URL jar: jars) {
-          URI jarURI = URI.create("file://" + jar.getPath());
-          shell.addDependency(jarURI, /* createClassLoader */ false);
-        }
-      }
-
-      return shell;
-    }
-
-    return null;
-  }
-
-  /**
-   * Gets the set of imports declared in the shell.
-   * @return the list of imports.
-   */
-  public String getImports() {
-    if (_cachedImports == null) {
-      StringBuilder sb = new StringBuilder();
-
-      for (String s : _imports) {
-        sb.append(String.format("import %s;", s));
-      }
-      for (String s : _staticImports) {
-        sb.append(String.format("import static %s;", s));
-      }
-
-      _cachedImports = sb.toString();
-    }
-
-    return _cachedImports;
-  }
-
-  /**
-   * Gets the set of jars referenced in the shell.
-   * @return the list of jars.
-   */
-  public String[] getJars() {
-    String[] jars = new String[_jars.size()];
-    jars = _jars.toArray(jars);
-
-    for (int i = 0; i < jars.length; i++) {
-      jars[i] = Paths.get(jars[i]).toFile().getName();
-    }
-
-    return jars;
+    _classLoader = ClassLoader.getSystemClassLoader();
   }
 
   /**
@@ -165,111 +65,100 @@ public class InteractiveShell implements Evaluator {
   }
 
   /**
-   * Gets the specified type defined or referenced within the shell.
-   * @param name the name of the type to lookup.
-   * @return the resulting class, or null if not found.
+   * Adds a shell extension to the current shell.
+   * @param name the name of the extension to lookup.
+   * @return an optional object to indicate the extension was loaded.
+   * @throws Exception if the specified extension could not be found or is invalid.
    */
-  public Class<?> getType(String name) {
-    try {
-      return _classLoader.loadClass(name);
+  public Object addExtension(String name) throws Exception {
+    if (_extensions.containsKey(name)) {
+      return _extensions.get(name);
     }
-    catch (ClassNotFoundException e) {
-      return null;
+
+    Class<?> extensionInterface = ShellExtension.class;
+    Class<?> extensionClass = _classLoader.loadClass(name);
+
+    if (!extensionInterface.isAssignableFrom(extensionClass)) {
+      throw new IllegalArgumentException("The specified name '" + name +
+          "' is not a valid extension.");
     }
+
+    ShellExtension extension = (ShellExtension)extensionClass.newInstance();
+    Object extensionResult = extension.initialize(this);
+
+    _extensions.put(name, extensionResult);
+    return extensionResult;
   }
 
   /**
-   * Gets the set of type names defined within the shell.
-   * @return the set of declared type names.
+   * Initializes an instance of an InteractiveShell.
+   * @param appURL the URL of the application, to be used to resolve dependency paths.
+   * @param dependencies the list of dependencies to pre-load, as well as include in compilation.
+   * @param shellDependencies the list of shell-only dependencies to pre-load.
+   * @param extensions the list of extensions to pre-load.
+   * @throws Exception if there is an error during initialization.
    */
-  public Set<String> getTypeNames() {
-    return _types.keySet();
-  }
-
-  /**
-   * Adds the specified dependency to the shell.
-   * @param uri the URI that identifies the dependency.
-   */
-  public void addDependency(URI uri) throws IllegalArgumentException {
-    addDependency(uri, /* createClassLoader */ true);
-  }
-
-  /**
-   * Adds the specified dependency to the shell.
-   * @param uri the URI that identifies the dependency.
-   * @param createClassLoader whether a new class loader should be chained for the loading types
-   *    from the specified dependency.
-   */
-  private void addDependency(URI uri, boolean createClassLoader) throws IllegalArgumentException {
-    String dependencyKey = uri.toString();
-    if (_dependencies.containsKey(dependencyKey)) {
-      return;
-    }
-
-    if (!uri.isAbsolute()) {
-      throw new IllegalArgumentException("The URI used to identify a dependency must be absolute.");
-    }
-
-    DependencyResolver resolver = _resolvers.get(uri.getScheme());
-    if (resolver == null) {
-      throw new IllegalArgumentException("Unknown dependency type '" + uri.getScheme() + "'.");
-    }
-
-    Dependency dependency = resolver.resolve(uri);
-    _dependencies.put(dependencyKey, dependency);
-
-    // Add references to all the jars from the dependency so they can be used during compilation.
-    for (String jar: dependency.getJars()) {
-      _jars.add(jar);
-    }
-
-    if (createClassLoader) {
-      // Chain a class loader to enable loading types from the referenced dependency
-      _classLoader = dependency.createClassLoader(_classLoader);
-    }
-  }
-
-  /**
-   * Adds a package to be imported for subsequent compilations.
-   * @param importName the package or type to be imported.
-   * @param staticImport whether the import should be a static import of a type.
-   */
-  public void addImport(String importName, boolean staticImport) {
-    if (staticImport) {
-      _staticImports.add(importName);
-    }
-    else {
-      _imports.add(importName);
-    }
-
-    _cachedImports = null;
-  }
-
-  protected void initialize(URL appURL, ClassLoader classLoader) {
-    _classLoader = classLoader;
+  public void initialize(URL appURL,
+                         List<String> dependencies,
+                         List<String> shellDependencies,
+                         List<String> extensions) throws Exception {
+    // Register the commands offered for shell functionality
+    registerCommand("load", new InteractiveCommands.LoadCommand(this));
 
     // Register a few java language related commands by default
-    registerCommand("dependency", new JavaCommands.DependencyCommand());
-    registerCommand("jars", new JavaCommands.JarsCommand());
-    registerCommand("imports", new JavaCommands.ImportsCommand());
-    registerCommand("text", new JavaCommands.TextCommand());
-    registerCommand("json", new JavaCommands.JsonCommand());
+    registerCommand("dependency", new JavaCommands.DependencyCommand(this));
+    registerCommand("jars", new JavaCommands.JarsCommand(this));
+    registerCommand("imports", new JavaCommands.ImportsCommand(this));
+    registerCommand("text", new JavaCommands.TextCommand(this));
+    registerCommand("json", new JavaCommands.JsonCommand(this));
 
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
     registerResolver("maven", new JavaResolvers.MavenResolver());
 
-    // Add a reference to the default runtime jar
+    // Add a reference to the default java runtime jar as well as the ijava runtime jar.
+    // These don't have to be loaded into a class loader, since they've already been loaded
+    // by the time we get here.
     String resourcePath = ClassLoader.getSystemResource("java/lang/String.class").getPath();
-    String runtimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
-                                                resourcePath.indexOf("!/"));
-    _jars.add(runtimePath);
+    String javaRuntimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
+                                                    resourcePath.indexOf("!/"));
+    String ijavaRuntimePath = new URL(appURL, "ijavart.jar").getPath();
+
+    _jars.add(javaRuntimePath);
+    _jars.add(ijavaRuntimePath);
 
     // Import a few packages by default
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
     addImport("ijava.JavaHelpers.*", /* staticImport */ true);
+
+    // Load up the dependencies - all of them get loaded via a class loader.
+    // Only dependencies are tracked and made available as references during compilation.
+    if (!dependencies.isEmpty() || !shellDependencies.isEmpty()) {
+      URL[] dependencyJars = new URL[dependencies.size() + shellDependencies.size()];
+      int i = 0;
+
+      for (String dependency: dependencies) {
+        dependencyJars[i] = new URL(appURL, dependency);
+        _jars.add(dependencyJars[i].getPath());
+
+        i++;
+      }
+
+      for (String dependency: shellDependencies) {
+        dependencyJars[i] = new URL(appURL, dependency);
+        i++;
+      }
+
+      _classLoader = new URLClassLoader(dependencyJars, _classLoader);
+    }
+
+    if (!extensions.isEmpty()) {
+      for (String name: extensions) {
+        addExtension(name);
+      }
+    }
   }
 
   /**
@@ -292,8 +181,8 @@ public class InteractiveShell implements Evaluator {
       throw new EvaluationError("Invalid syntax. Unknown command identifier '" + name + "'");
     }
 
-    return command.evaluate(this, evaluationID,
-                            commandData.getArguments(), commandData.getContent());
+    return command.evaluate(commandData.getArguments(), commandData.getContent(), evaluationID,
+                            metadata);
   }
 
   /**
@@ -344,7 +233,7 @@ public class InteractiveShell implements Evaluator {
 
     // Initialize the callable code instance with any current state
     boolean staleState = false;
-    for (String variable: _state.getNames()) {
+    for (String variable: _state.getFields()) {
       Field field = snippetClass.getDeclaredField(variable);
       Object value = _state.getValue(variable);
 
@@ -392,7 +281,7 @@ public class InteractiveShell implements Evaluator {
 
     // Now extract any new/updated state to be tracked for use in future evaluations.
     Class<?> instanceClass = instance.getClass();
-    for (String name: _state.getNames()) {
+    for (String name: _state.getFields()) {
       try {
         Field field = instanceClass.getDeclaredField(name);
         field.setAccessible(true);
@@ -452,24 +341,6 @@ public class InteractiveShell implements Evaluator {
       // Create a new class loader parented to the current one for the newly defined classes
       _classLoader = new ShellClassLoader(_classLoader, id, newNames);
     }
-  }
-
-  /**
-   * Registers a command so it may be invoked within the shell.
-   * @param name the name of the command used in invoking it.
-   * @param command the Command implementation to be registered.
-   */
-  public void registerCommand(String name, Command command) {
-    _commands.put(name, command);
-  }
-
-  /**
-   * Registers a resolver that can be used to resolve dependency URIs.
-   * @param name the name of the resolver, used to match against scheme in dependency URIs.
-   * @param resolver the resolver instance to register.
-   */
-  public void registerResolver(String name, DependencyResolver resolver) {
-    _resolvers.put(name, resolver);
   }
 
   /**
@@ -547,6 +418,167 @@ public class InteractiveShell implements Evaluator {
 
       throw new EvaluationError(errorBuilder.toString());
     }
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public String getImports() {
+    if (_cachedImports == null) {
+      StringBuilder sb = new StringBuilder();
+
+      for (String s : _imports) {
+        sb.append(String.format("import %s;", s));
+      }
+      for (String s : _staticImports) {
+        sb.append(String.format("import static %s;", s));
+      }
+
+      _cachedImports = sb.toString();
+    }
+
+    return _cachedImports;
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public String[] getReferences() {
+    String[] jars = new String[_jars.size()];
+    jars = _jars.toArray(jars);
+
+    for (int i = 0; i < jars.length; i++) {
+      jars[i] = Paths.get(jars[i]).toFile().getName();
+    }
+
+    return jars;
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Class<?> getType(String name) {
+    try {
+      return _classLoader.loadClass(name);
+    }
+    catch (ClassNotFoundException e) {
+      return null;
+    }
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Set<String> getTypeNames() {
+    return _types.keySet();
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Object getVariable(String name) {
+    return _state.getValue(name);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public Set<String> getVariableNames() {
+    return _state.getFields();
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void addDependency(URI uri) throws IllegalArgumentException {
+    String dependencyKey = uri.toString();
+    if (_dependencies.containsKey(dependencyKey)) {
+      return;
+    }
+
+    if (!uri.isAbsolute()) {
+      throw new IllegalArgumentException("The URI used to identify a dependency must be absolute.");
+    }
+
+    DependencyResolver resolver = _resolvers.get(uri.getScheme());
+    if (resolver == null) {
+      throw new IllegalArgumentException("Unknown dependency type '" + uri.getScheme() + "'.");
+    }
+
+    Dependency dependency = new Dependency(uri, resolver.resolve(uri));
+    _dependencies.put(dependencyKey, dependency);
+
+    // Add references to all the jars from the dependency so they can be used during compilation.
+    for (String jar: dependency.getJars()) {
+      _jars.add(jar);
+    }
+
+    // Chain a class loader to enable loading types from the referenced dependency
+    _classLoader = dependency.createClassLoader(_classLoader);
+  }
+
+  /**
+   * Adds a package to be imported for subsequent compilations.
+   * @param importName the package or type to be imported.
+   * @param staticImport whether the import should be a static import of a type.
+   */
+  @Override
+  public void addImport(String importName, boolean staticImport) {
+    if (staticImport) {
+      _staticImports.add(importName);
+    }
+    else {
+      _imports.add(importName);
+    }
+
+    _cachedImports = null;
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void declareVariable(String name, String type) {
+    _state.declareField(name, type);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void registerCommand(String name, Command command) {
+    _commands.put(name, command);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void registerResolver(String name, DependencyResolver resolver) {
+    _resolvers.put(name, resolver);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void resetVariable(String name) throws IllegalArgumentException {
+    _state.resetValue(name);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void setVariable(String name, Object value) throws IllegalArgumentException {
+    _state.setValue(name, value);
   }
 
 

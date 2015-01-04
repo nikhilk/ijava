@@ -1,12 +1,12 @@
 // Evaluator.java
 //
 
-package ijava;
+package ijava.extensibility;
 
 import java.util.*;
 
 /**
- * A generic evaluation function contract with input data and a result.
+ * A generic evaluation function contract with input data, associated metadata and a result.
  */
 public interface Evaluator {
 
