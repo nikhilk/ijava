@@ -68,18 +68,26 @@ public class InteractiveShell implements Evaluator {
   public static InteractiveShell create(URL appURL, String spec, String[] dependencies) {
     InteractiveShell shell = null;
 
-    URL[] jars = new URL[dependencies.length + 1];
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+
+    URL ijavaRuntimeJar = null;
+    URL[] jars = null;
     try {
-      for (int i = 0; i < dependencies.length; i++) {
-        jars[i] = new URL(appURL, dependencies[i]);
+      ijavaRuntimeJar = new URL(appURL, "ijavart.jar");
+
+      if (dependencies.length != 0) {
+        jars = new URL[dependencies.length];
+
+        for (int i = 0; i < dependencies.length; i++) {
+          jars[i] = new URL(appURL, dependencies[i]);
+        }
+
+        classLoader = new URLClassLoader(jars, classLoader);
       }
-      jars[jars.length - 1] = new URL(appURL, "ijavart.jar");
     }
     catch (Exception e) {
       // TODO: log
     }
-
-    ClassLoader classLoader = new URLClassLoader(jars, ClassLoader.getSystemClassLoader());
 
     if ((spec == null) || spec.isEmpty()) {
       shell = new InteractiveShell(new InteractiveState());
@@ -103,6 +111,11 @@ public class InteractiveShell implements Evaluator {
 
     if (shell != null) {
       shell.initialize(appURL, classLoader);
+
+      // Add ijavart.jar as a dependency, but don't create a corresponding class loader, as
+      // this jar is statically linked in into ijava itself.
+      shell.addDependency(URI.create("file://" + ijavaRuntimeJar.getPath()),
+                          /* createClassLoader */ false);
 
       if (jars != null) {
         // Add each jar as a dependency, so it can be tracked as one. However, don't create

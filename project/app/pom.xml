@@ -47,6 +47,12 @@
               <minimizeJar>true</minimizeJar>
               <filters>
                 <filter>
+                  <artifact>net.nikhilk.ijava:api</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
                   <artifact>*:*</artifact>
                   <excludes>
                     <exclude>META-INF/*.SF</exclude>
@@ -67,6 +73,11 @@
     </plugins>
   </build>
   <dependencies>
+    <dependency>
+      <groupId>net.nikhilk.ijava</groupId>
+      <artifactId>api</artifactId>
+      <version>0.1</version>
+    </dependency>
     <dependency>
       <groupId>net.nikhilk.ijava</groupId>
       <artifactId>core</artifactId>
