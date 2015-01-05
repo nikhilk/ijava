@@ -9,8 +9,8 @@ kernel_path = os.path.join(os.path.dirname(__file__), '..', 'build', 'ijava')
 c.KernelManager.kernel_cmd = [
   kernel_path,
   '{connection_file}',
-  '-ext', 'SampleExtension',
-  '-shellDep', 'extensions-sample.jar'
+  '-ext', 'ChartingExtension',
+  '-shellDep', 'ijavaext-charting.jar'
 ]
 
 # Protocol signing settings

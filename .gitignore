@@ -1,4 +1,6 @@
 build/
+target/
+.ipynb_checkpoints/
 .settings/
 .project
 .classpath

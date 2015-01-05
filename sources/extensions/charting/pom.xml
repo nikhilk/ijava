@@ -10,14 +10,14 @@
     <relativePath>../..</relativePath>
   </parent>
   <groupId>net.nikhilk.ijava</groupId>
-  <artifactId>extensions-sample</artifactId>
+  <artifactId>ijavaext-charting</artifactId>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <build>
-    <directory>${project.basedir}/../../../build/outputs/extensions/sample</directory>
+    <directory>${project.basedir}/../../../build/outputs/extensions/charting</directory>
     <sourceDirectory>${project.basedir}/src</sourceDirectory>
     <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
   </build>
