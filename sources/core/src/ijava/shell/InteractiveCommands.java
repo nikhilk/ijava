@@ -23,7 +23,7 @@ public final class InteractiveCommands {
     }
 
     @Override
-    public Object evaluate(String arguments, String data, int evaluationID,
+    public Object evaluate(String arguments, String data, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
       if ((arguments == null) || arguments.isEmpty()) {
         throw new EvaluationError("The name of the extension to load must be specified.");

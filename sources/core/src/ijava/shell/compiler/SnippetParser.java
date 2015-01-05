@@ -38,7 +38,7 @@ public final class SnippetParser {
    * @return the Snippet object and associated metadata.
    * @throws SnippetException if there is an error parsing the code.
    */
-  public Snippet parse(String code, int id) throws SnippetException {
+  public Snippet parse(String code, long id) throws SnippetException {
     List<String> errors = new ArrayList<String>();
 
     // First, attempt to parse the code as a complete java file, i.e. a compilation unit.

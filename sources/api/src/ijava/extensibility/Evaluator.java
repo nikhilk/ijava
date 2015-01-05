@@ -18,5 +18,5 @@ public interface Evaluator {
    * @return the result of evaluation if any.
    * @throws Exception if there is an evaluation error.
    */
-  Object evaluate(String data, int evaluationID, Map<String, Object> metadata) throws Exception;
+  Object evaluate(String data, long evaluationID, Map<String, Object> metadata) throws Exception;
 }

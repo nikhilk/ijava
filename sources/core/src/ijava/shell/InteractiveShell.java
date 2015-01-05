@@ -166,7 +166,7 @@ public final class InteractiveShell implements Shell {
    * @param data the evaluation text.
    * @param evaluationID the evaluation sequence number.
    */
-  private Object invokeCommand(String data, int evaluationID,
+  private Object invokeCommand(String data, long evaluationID,
                                Map<String, Object> metadata) throws Exception {
     CommandDataParser parser = new CommandDataParser();
     CommandData commandData = parser.parse(data);
@@ -224,7 +224,7 @@ public final class InteractiveShell implements Shell {
    * @return the result of a code block execution, or null for class members execution or if there
    *         is an error.
    */
-  private Object processCode(int id, Snippet snippet) throws Exception {
+  private Object processCode(long id, Snippet snippet) throws Exception {
     SnippetCompilation compilation = snippet.getCompilation();
     ClassLoader classLoader = new CodeClassLoader(_classLoader, id, compilation.getTypes());
 
@@ -311,7 +311,7 @@ public final class InteractiveShell implements Shell {
    * @param id the ID to use to generate unique names.
    * @param snippet the compiled snippet.
    */
-  private void processCompilationUnit(int id, Snippet snippet) {
+  private void processCompilationUnit(long id, Snippet snippet) {
     SnippetCompilation compilation = snippet.getCompilation();
 
     for (String packageName : compilation.getPackages()) {
@@ -347,10 +347,10 @@ public final class InteractiveShell implements Shell {
    * {@link Evaluator}
    */
   @Override
-  public Object evaluate(String data, int evaluationID,
+  public Object evaluate(String data, long evaluationID,
                          Map<String, Object> metadata) throws Exception {
     if (evaluationID == 0) {
-      evaluationID = (int)(new Date()).getTime();
+      evaluationID = (new Date()).getTime();
     }
 
     if (data.startsWith("%")) {
@@ -595,7 +595,7 @@ public final class InteractiveShell implements Shell {
      * @param id the ID of this class loader.
      * @param names the list of names that should be resolved with this class loader.
      */
-    public ShellClassLoader(ClassLoader parentClassLoader, int id, HashSet<String> names) {
+    public ShellClassLoader(ClassLoader parentClassLoader, long id, HashSet<String> names) {
       super(parentClassLoader, id);
       _names = names;
     }
@@ -625,7 +625,7 @@ public final class InteractiveShell implements Shell {
      * @param id the ID of this class loader.
      * @param types the set of byte code buffers for types keyed by class names.
      */
-    public CodeClassLoader(ClassLoader parentClassLoader, int id,
+    public CodeClassLoader(ClassLoader parentClassLoader, long id,
                            Map<String, byte[]> types) {
       super(parentClassLoader, id);
       _types = types;

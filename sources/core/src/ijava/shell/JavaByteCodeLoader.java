@@ -10,7 +10,7 @@ import java.util.*;
  */
 public abstract class JavaByteCodeLoader extends ClassLoader {
 
-  private final int _id;
+  private final long _id;
   private final HashMap<String, Class<?>> _loadedClasses;
 
   /**
@@ -18,13 +18,13 @@ public abstract class JavaByteCodeLoader extends ClassLoader {
    * @param parentClassLoader the parent class loader to chain with.
    * @param id the ID of this class loader.
    */
-  protected JavaByteCodeLoader(ClassLoader parentClassLoader, int id) {
+  protected JavaByteCodeLoader(ClassLoader parentClassLoader, long id) {
     super(parentClassLoader);
     _id = id;
     _loadedClasses = new HashMap<String, Class<?>>();
   }
 
-  public int getId() {
+  public long getId() {
     return _id;
   }
 

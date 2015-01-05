@@ -28,7 +28,7 @@ public final class JavaCommands {
     }
 
     @Override
-    public Object evaluate(String arguments, String data, int evaluationID,
+    public Object evaluate(String arguments, String data, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
       if (arguments.startsWith("'") || arguments.startsWith("\"")) {
         arguments = arguments.substring(1, arguments.length() - 1);
@@ -51,7 +51,7 @@ public final class JavaCommands {
     }
 
     @Override
-    public Object evaluate(String arguments, String data, int evaluationID,
+    public Object evaluate(String arguments, String data, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
       String[] jars = _shell.getReferences();
       Arrays.sort(jars);
@@ -78,7 +78,7 @@ public final class JavaCommands {
     }
 
     @Override
-    public Object evaluate(String arguments, String data, int evaluationID,
+    public Object evaluate(String arguments, String data, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
       String[] imports = _shell.getImports().split(";");
       Arrays.sort(imports);
@@ -105,7 +105,7 @@ public final class JavaCommands {
     }
 
     @Override
-    public Object evaluate(String arguments, String data, int evaluationID,
+    public Object evaluate(String arguments, String data, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
       if (arguments.length() != 0) {
         _shell.declareVariable(arguments, "String");
@@ -131,7 +131,7 @@ public final class JavaCommands {
     }
 
     @Override
-    public Object evaluate(String arguments, String data, int evaluationID,
+    public Object evaluate(String arguments, String data, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
       Object value = null;
       String name = null;

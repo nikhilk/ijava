@@ -19,6 +19,6 @@ public interface Command {
    * @return an optional object result.
    * @throws Exception if there is an error during evaluation.
    */
-  public Object evaluate(String arguments, String data, int evaluationID,
+  public Object evaluate(String arguments, String data, long evaluationID,
                          Map<String, Object> metadata) throws Exception;
 }

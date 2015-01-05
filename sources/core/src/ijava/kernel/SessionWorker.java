@@ -44,7 +44,7 @@ public final class SessionWorker implements Runnable {
   }
 
   @SuppressWarnings("resource")
-  private int processTask(SessionTask task, int counter) {
+  private long processTask(SessionTask task, long counter) {
     Message parentMessage = task.getMessage();
     Map<String, Object> metadata = parentMessage.getMetadata();
     String content = task.getContent();
@@ -93,7 +93,7 @@ public final class SessionWorker implements Runnable {
       System.setErr(err);
       System.setIn(new DisabledInputStream());
 
-      int evaluationID = task.recordProcessing() ? counter : 0;
+      long evaluationID = task.recordProcessing() ? counter : 0;
       result = _session.getEvaluator().evaluate(task.getContent(), evaluationID, metadata);
     }
     catch (EvaluationError e) {
@@ -159,7 +159,7 @@ public final class SessionWorker implements Runnable {
   @Override
   public void run() {
     boolean busy = false;
-    int counter = 1;
+    long counter = 1;
 
     while (!Thread.currentThread().isInterrupted()) {
       SessionTask task = null;

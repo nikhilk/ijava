@@ -204,7 +204,7 @@ public final class Messages {
      * @param metadata any additional data associated with the message.
      */
     protected ExecuteResponse(String identity, Map<String, Object> parentHeader,
-                              String status, int executionCount) {
+                              String status, long executionCount) {
       this(identity, parentHeader, status, executionCount, null);
     }
 
@@ -217,13 +217,13 @@ public final class Messages {
      * @param metadata any additional data associated with the message.
      */
     protected ExecuteResponse(String identity, Map<String, Object> parentHeader,
-                              String status, int executionCount,
+                              String status, long executionCount,
                               Map<String, Object> metadata) {
       super(identity, Message.ExecuteResponse, parentHeader, metadata);
 
       Map<String, Object> content = getContent();
       content.put("status", status);
-      content.put("execution_count", new Integer(executionCount));
+      content.put("execution_count", new Long(executionCount));
     }
   }
 
@@ -242,7 +242,7 @@ public final class Messages {
      */
     public SuccessExecuteResponse(String identity,
                                   Map<String, Object> parentHeader,
-                                  int executionCount,
+                                  long executionCount,
                                   Map<String, Object> metadata) {
       super(identity, parentHeader, Messages.ExecuteResponse.SuccessStatus, executionCount,
             metadata);
@@ -269,7 +269,7 @@ public final class Messages {
      */
     public ErrorExecuteResponse(String identity,
                                 Map<String, Object> parentHeader,
-                                int executionCount,
+                                long executionCount,
                                 Throwable error) {
       super(identity, parentHeader, Messages.ExecuteResponse.ErrorStatus, executionCount);
 
@@ -302,7 +302,7 @@ public final class Messages {
      */
     public AbortExecuteResponse(String identity,
                                 Map<String, Object> parentHeader,
-                                int executionCount) {
+                                long executionCount) {
       super(identity, parentHeader, Messages.ExecuteResponse.AbortStatus, executionCount);
     }
   }
