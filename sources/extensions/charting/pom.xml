@@ -17,7 +17,7 @@
   </properties>
 
   <build>
-    <directory>${project.basedir}/../../../build/outputs/extensions/charting</directory>
+    <directory>${project.basedir}/target</directory>
     <sourceDirectory>${project.basedir}/src</sourceDirectory>
     <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
   </build>
@@ -29,4 +29,3 @@
     </dependency>
   </dependencies>
 </project>
-
