@@ -106,12 +106,16 @@ public final class InteractiveShell implements Shell {
     registerCommand("load", new InteractiveCommands.LoadCommand(this));
     registerCommand("values", new InteractiveCommands.ValuesCommand(this));
 
+    // Register the commands offered for data creation/rendering functionality
+    registerCommand("text", new DataCommands.TextCommand(this));
+    registerCommand("json", new DataCommands.JsonCommand(this));
+    registerCommand("html", new DataCommands.HTMLCommand(this));
+    registerCommand("javascript", new DataCommands.JavaScriptCommand(this));
+
     // Register a few java language related commands by default
     registerCommand("dependency", new JavaCommands.DependencyCommand(this));
     registerCommand("jars", new JavaCommands.JarsCommand(this));
     registerCommand("imports", new JavaCommands.ImportsCommand(this));
-    registerCommand("text", new JavaCommands.TextCommand(this));
-    registerCommand("json", new JavaCommands.JsonCommand(this));
 
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());

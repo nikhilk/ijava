@@ -77,8 +77,9 @@ $(function() {
   function hiddenLineFormatter(n) { return ''; }
   function stringLineFormatter(n) { return n.toString(); }
 
-  // load CodeMirror mode for Java
+  // load CodeMirror modes
   $.getScript('/static/components/codemirror/mode/clike/clike.js');
+  $.getScript('/static/components/codemirror/mode/clike/javascript.js');
 
   // Configure CodeMirror settings
   var cmConfig = IPython.CodeCell.options_default.cm_config;
@@ -91,8 +92,15 @@ $(function() {
   cmConfig.lineNumbers = true;
   cmConfig.lineNumberFormatter = hiddenLineFormatter;
 
-  var codeCellProto = IPython.CodeCell.prototype;
+  // %%json cell support
+  IPython.config.cell_magic_highlight['magic_application/ld+json'] = {
+    reg: [ /%%json/ ]
+  };
+  IPython.config.cell_magic_highlight['magic_text/plain'] = {
+    reg: [ /%%text/ ]
+  };
 
+  var codeCellProto = IPython.CodeCell.prototype;
   var originalJSONConverter = codeCellProto.toJSON;
   var originalExecuteReplyHandler = codeCellProto._handle_execute_reply;
   var originalSelectHandler = codeCellProto.select;
