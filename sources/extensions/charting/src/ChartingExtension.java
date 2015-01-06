@@ -11,7 +11,7 @@ public final class ChartingExtension implements ShellExtension {
    */
   @Override
   public Object initialize(Shell shell) {
-    shell.registerCommand("chart", new ChartCommand());
+    shell.registerDataCommand("chart", ShellData.JSON, new ChartCommand());
     return null;
   }
 }

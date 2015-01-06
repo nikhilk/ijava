@@ -13,7 +13,7 @@ public final class CommandDataParser {
   private final static Pattern CommandPattern;
 
   static {
-    CommandPattern = Pattern.compile("^%(?<name>[a-z]+)(\\s+)?(?<args>.*)?$",
+    CommandPattern = Pattern.compile("^%(?<name>[a-z\\.]+)(\\s+)?(?<args>.*)?$",
                                      Pattern.CASE_INSENSITIVE);
   }
 

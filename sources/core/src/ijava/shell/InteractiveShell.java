@@ -22,6 +22,7 @@ public final class InteractiveShell implements Shell {
           "to ignore the error and discard it.";
 
   private final HashMap<String, Command> _commands;
+  private final HashMap<String, Command> _jsonCommands;
   private final HashMap<String, DependencyResolver> _resolvers;
   private final HashMap<String, Object> _extensions;
 
@@ -42,6 +43,7 @@ public final class InteractiveShell implements Shell {
    */
   public InteractiveShell() {
     _commands = new HashMap<String, Command>();
+    _jsonCommands = new HashMap<String, Command>();
     _resolvers = new HashMap<String, DependencyResolver>();
     _extensions = new HashMap<String, Object>();
 
@@ -181,7 +183,22 @@ public final class InteractiveShell implements Shell {
     }
 
     String name = commandData.getName();
-    Command command = _commands.get(name);
+    Command command = null;
+
+    command = _commands.get(name);
+    if (command == null) {
+      int dataTypeLength = ShellData.JSON.length();
+
+      // Check if this is a data command, which take the form:
+      // <data type>.<command name>
+      if (name.startsWith(ShellData.JSON) &&
+          (name.length() > (dataTypeLength + 1)) &&
+          (name.charAt(dataTypeLength) == '.')) {
+        name = name.substring(dataTypeLength + 1);
+        command = _jsonCommands.get(name);
+      }
+    }
+
     if (command == null) {
       throw new EvaluationError("Invalid syntax. Unknown command identifier '" + name + "'");
     }
@@ -560,6 +577,16 @@ public final class InteractiveShell implements Shell {
   @Override
   public void registerCommand(String name, Command command) {
     _commands.put(name, command);
+  }
+
+  /**
+   * {@link Shell}
+   */
+  @Override
+  public void registerDataCommand(String name, String dataType, Command command) {
+    if (dataType.equals(ShellData.JSON)) {
+      _jsonCommands.put(name, command);
+    }
   }
 
   /**
