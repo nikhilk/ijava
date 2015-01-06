@@ -104,6 +104,7 @@ public final class InteractiveShell implements Shell {
                          List<String> extensions) throws Exception {
     // Register the commands offered for shell functionality
     registerCommand("load", new InteractiveCommands.LoadCommand(this));
+    registerCommand("values", new InteractiveCommands.ValuesCommand(this));
 
     // Register a few java language related commands by default
     registerCommand("dependency", new JavaCommands.DependencyCommand(this));

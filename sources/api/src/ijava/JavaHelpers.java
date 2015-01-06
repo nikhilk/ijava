@@ -41,6 +41,10 @@ public final class JavaHelpers {
     return new Image(data, mimeType);
   }
 
+  public static Data json(Object value) {
+    return new Data(value);
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> List<T> list(T... items) {
     return Arrays.asList(items);
