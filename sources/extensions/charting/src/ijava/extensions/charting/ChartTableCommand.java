@@ -212,12 +212,19 @@ public final class ChartTableCommand implements Command {
           if (name.equals("class")) {
             continue;
           }
-          if (!ChartTableCommand.SupportedTypes.containsKey(pd.getPropertyType())) {
+
+          Object value = null;
+          try {
+            value = pd.getReadMethod().invoke(item);
+          }
+          catch (Exception e) {
+          }
+          if ((value == null) || !ChartTableCommand.SupportedTypes.containsKey(value.getClass())) {
             continue;
           }
 
           _getters.add(pd.getReadMethod());
-          columns.add(createColumn(name, pd.getPropertyType()));
+          columns.add(createColumn(name, value.getClass()));
         }
       }
       catch (IntrospectionException e) {
