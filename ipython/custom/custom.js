@@ -1,70 +1,11 @@
 // Custom.js
 //
 
-// RequireJS configuration to add various paths in support of extensions
-// and common scripts used.
+// RequireJS configuration to add common scripts used.
 require.config({
   paths: {
-    d3: '//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min',
-    extensions: '/static/content/extensions'
+    d3: '//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min'
   }
-});
-
-// Kernel related functionality
-$(function() {
-  IPython.Kernel.prototype.get_data = function(code, callback) {
-    function shellHandler(reply) {
-      if (!callback) {
-        return;
-      }
-
-      var content = reply.content;
-      if (!content || (content.status != 'ok')) {
-        callback(null, new Error('Unable to retrieve data.'));
-        callback = null;
-      }
-    }
-
-    function iopubHandler(output) {
-      if (!callback) {
-        return;
-      }
-
-      var data = null;
-      var error = null;
-      try {
-        var data = output.content ? output.content.data : null;
-        if (data) {
-          data = data['application/json'];
-          if (data) {
-            data = JSON.parse(data);
-          }
-        }
-      }
-      catch(e) {
-        error = e;
-      }
-
-      if (data) {
-        callback(data);
-      }
-      else {
-        callback(null, error || new Error('Unexpected data retrieved.'));
-      }
-      callback = null;
-    }
-
-    try {
-      var callbacks = {
-        shell: { reply: shellHandler },
-        iopub: { output: iopubHandler }
-      };
-      this.execute(code, callbacks, { silent: false, store_history: false });
-    }
-    catch (e) {
-      callback(null, e);
-    }
-  };
 });
 
 // CodeCell and CodeMirror related functionality

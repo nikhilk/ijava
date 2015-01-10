@@ -12,7 +12,6 @@
   <modules>
     <module>api</module>
     <module>core</module>
-    <module>extensions/charting</module>
   </modules>
 
   <properties>
