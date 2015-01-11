@@ -42,6 +42,9 @@ public final class Data {
     if (_json) {
       serializedValue = JSON.std.asString(_value);
     }
+    else {
+      serializedValue = "";
+    }
 
     HashMap<String, String> representations = new HashMap<String, String>();
     representations.put("application/json", serializedValue);

@@ -11,6 +11,7 @@ import java.util.*;
 public final class HTML {
 
   private final String _markup;
+  private String _cssClass;
   private JavaScript _script;
 
   /**
@@ -19,6 +20,16 @@ public final class HTML {
    */
   public HTML(String markup) {
     _markup = markup;
+  }
+
+  /**
+   * Adds a CSS class to the HTML element that will contain the markup.
+   * @param cssClass the class to apply.
+   * @return the modified HTML object.
+   */
+  public HTML addClass(String cssClass) {
+    _cssClass = cssClass;
+    return this;
   }
 
   /**
@@ -57,7 +68,7 @@ public final class HTML {
       String id = "_" + (new Date()).getTime();
 
       StringBuilder sb = new StringBuilder();
-      sb.append("<div id='" + id + "'>");
+      sb.append("<div id='" + id + "' + class='" + _cssClass + "'>");
       sb.append(html);
       sb.append("</div>");
       sb.append("<script>\n");
