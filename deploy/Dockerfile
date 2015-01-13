@@ -12,11 +12,10 @@ RUN echo "deb-src http://ftp.us.debian.org/debian testing main" >> /etc/apt/sour
   apt-get install --no-install-recommends -y -q openjdk-7-jdk
 
 # Add the ijava application and associated files
-ADD build app
-ADD app.sh app/app.sh
+ADD app app
 
 # Configuration
 EXPOSE 8080
 VOLUME [ "/notebooks" ]
-ENTRYPOINT [ "/app/app.sh" ]
+ENTRYPOINT [ "/app/start.sh" ]
 
