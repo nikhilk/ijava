@@ -5,7 +5,7 @@ import os
 c = get_config()
 
 # Kernel setup
-kernel_path = os.path.join(os.path.dirname(__file__), '..', 'build', 'ijava')
+kernel_path = os.path.join(os.path.dirname(__file__), 'ijava')
 c.KernelManager.kernel_cmd = [ kernel_path, '{connection_file}' ]
 
 # Protocol signing settings
