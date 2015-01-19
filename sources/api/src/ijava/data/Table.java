@@ -127,10 +127,13 @@ public final class Table {
 
     Object sampleItem = _list.get(0);
     if (Table.isScalar(sampleItem)) {
-      generator = new ScalarTableGenerator(sampleItem);
+      generator = new ScalarListTableGenerator(sampleItem);
+    }
+    else if (sampleItem instanceof Map<?, ?>) {
+      generator = new MapListTableGenerator(sampleItem);
     }
     else {
-      generator = new RecordTableGenerator(sampleItem);
+      generator = new ObjectListTableGenerator(sampleItem);
     }
 
     return renderItems(_list, _list.size(), generator);
@@ -147,13 +150,16 @@ public final class Table {
     Object sampleValue = ((Map.Entry)items.iterator().next()).getValue();
 
     if (Table.isScalar(sampleValue)) {
-      valueGenerator = new ScalarTableGenerator(sampleValue);
+      valueGenerator = new ScalarListTableGenerator(sampleValue);
+    }
+    else if (sampleValue instanceof Map<?, ?>) {
+      valueGenerator = new MapListTableGenerator(sampleValue);
     }
     else {
-      valueGenerator = new RecordTableGenerator(sampleValue);
+      valueGenerator = new ObjectListTableGenerator(sampleValue);
     }
 
-    return renderItems(items, items.size(), new KeyValueTableGenerator(valueGenerator));
+    return renderItems(items, items.size(), new MapTableGenerator(valueGenerator));
   }
 
   /**
@@ -184,11 +190,11 @@ public final class Table {
     public void generateRow(StringBuilder sb, Object item);
   }
 
-  private static final class ScalarTableGenerator implements TableGenerator {
+  private static final class ScalarListTableGenerator implements TableGenerator {
 
     private final String _type;
 
-    public ScalarTableGenerator(Object sampleItem) {
+    public ScalarListTableGenerator(Object sampleItem) {
       String type = sampleItem.getClass().getSimpleName();
       if (type.length() == 0) {
         type = "items";
@@ -217,13 +223,54 @@ public final class Table {
     }
   }
 
-  private static final class RecordTableGenerator implements TableGenerator {
+  @SuppressWarnings("unchecked")
+  private static final class MapListTableGenerator implements TableGenerator {
+
+    private List<String> _keys;
+
+    public MapListTableGenerator(Object sampleItem) {
+      _keys = new ArrayList<String>();
+
+      Map<String, Object> map = (Map<String, Object>)sampleItem;
+      for (Map.Entry<String, Object> entry: map.entrySet()) {
+        _keys.add(entry.getKey());
+      }
+    }
+
+    @Override
+    public void generateHeader(StringBuilder sb) {
+      for (String key: _keys) {
+        sb.append("<th>");
+        sb.append(key);
+        sb.append("</th>");
+      }
+    }
+
+    @Override
+    public void generateRow(StringBuilder sb, Object item) {
+      Map<String, Object> map = (Map<String, Object>)item;
+
+      for (String key: _keys) {
+        Object value = map.get(key);
+        sb.append("<td>");
+        if (value == null) {
+          sb.append("&nbsp;");
+        }
+        else {
+          sb.append(value);
+        }
+        sb.append("</td>");
+      }
+    }
+  }
+
+  private static final class ObjectListTableGenerator implements TableGenerator {
 
     private final List<Field> _fields;
     private final List<String> _properties;
     private final List<Method> _getters;
 
-    public RecordTableGenerator(Object sampleItem) {
+    public ObjectListTableGenerator(Object sampleItem) {
       _fields = new ArrayList<Field>();
       _properties = new ArrayList<String>();
       _getters = new ArrayList<Method>();
@@ -302,11 +349,11 @@ public final class Table {
     }
   }
 
-  private static final class KeyValueTableGenerator implements TableGenerator {
+  private static final class MapTableGenerator implements TableGenerator {
 
     private final TableGenerator _valueTableGenerator;
 
-    public KeyValueTableGenerator(TableGenerator valueTableGenerator) {
+    public MapTableGenerator(TableGenerator valueTableGenerator) {
       _valueTableGenerator = valueTableGenerator;
     }
 
