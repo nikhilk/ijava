@@ -3,7 +3,8 @@
 
 package ijava.shell;
 
-import java.util.*;
+import ijava.extensibility.*;
+import com.beust.jcommander.*;
 
 /**
  * Represents the data for an command invocation.
@@ -11,7 +12,7 @@ import java.util.*;
 public final class CommandData {
 
   private final String _name;
-  private final String _arguments;
+  private final String[] _arguments;
   private final String _content;
 
   /**
@@ -22,24 +23,8 @@ public final class CommandData {
    */
   public CommandData(String name, String arguments, String content) {
     _name = name;
-    _arguments = arguments;
+    _arguments = arguments.split(" ");
     _content = content;
-  }
-
-  /**
-   * Gets the arguments associated with the command.
-   * @return the arguments for the command.
-   */
-  public String getArguments() {
-    return _arguments;
-  }
-
-  /**
-   * Gets the content associated with the command.
-   * @return the content for the command.
-   */
-  public String getContent() {
-    return _content;
   }
 
   /**
@@ -50,53 +35,35 @@ public final class CommandData {
     return _name;
   }
 
-  /**
-   * Parses the arguments into a set of options.
-   * @return the parsed set of flags.
-   */
-  public Map<String, Object> parseOptions() {
-    HashMap<String, Object> options = new HashMap<String, Object>();
-
-    String[] args = _arguments.split(" ");
-    int i = 0;
-
-    while (i < args.length) {
-      String arg = args[i];
-
-      if (arg.equals("--")) {
-        // Treat this as separator between named options and positional options
-        i++;
-        break;
-      }
-      else if (arg.startsWith("-") && (arg.length() > 1)) {
-        String name = arg.substring(1);
-        i++;
-
-        if ((i < args.length) && !args[i].startsWith("-")) {
-          // Consume the next arg as the value
-          String value = args[i];
-          i++;
-
-          options.put(name, value);
-          i++;
-        }
-        else {
-          // Treat this as a boolean option
-          options.put(name, true);
-        }
-      }
-      else {
-        // Consider this as the start of positional options
-        break;
-      }
+  public CommandOptions parseOptions(Command<?> command) {
+    CommandOptions options;
+    try {
+      options = command.createOptions();
+    }
+    catch (Exception e) {
+      // TODO: Log
+      return null;
     }
 
-    if (i < args.length) {
-      // Treat remaining args as positional options
-      String[] values = Arrays.copyOfRange(args, i, args.length - 1);
-      options.put("...", values);
+    JCommander optionsParser = options.createParser(_name, _arguments, _content);
+    boolean parseError = false;
+    try {
+      optionsParser.parse(_arguments);
+    }
+    catch (ParameterException e) {
+      parseError = true;
     }
 
+    if (parseError || options.help) {
+      optionsParser.usage();
+      if (!command.isSingleLine()) {
+        System.out.println("[ ... additional content associated with command]");
+      }
+
+      return null;
+    }
+
+    options.setCommand(optionsParser.getParsedCommand());
     return options;
   }
 }

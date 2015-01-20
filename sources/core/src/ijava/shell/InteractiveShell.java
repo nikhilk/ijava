@@ -173,6 +173,7 @@ public final class InteractiveShell implements Shell {
    * @param data the evaluation text.
    * @param evaluationID the evaluation sequence number.
    */
+  @SuppressWarnings("unchecked")
   private Object invokeCommand(String data, long evaluationID,
                                Map<String, Object> metadata) throws Exception {
     CommandDataParser parser = new CommandDataParser();
@@ -203,8 +204,12 @@ public final class InteractiveShell implements Shell {
       throw new EvaluationError("Invalid syntax. Unknown command identifier '" + name + "'");
     }
 
-    return command.evaluate(commandData.getArguments(), commandData.getContent(), evaluationID,
-                            metadata);
+    CommandOptions options = commandData.parseOptions(command);
+    if (options != null) {
+      return command.evaluate(options, evaluationID, metadata);
+    }
+
+    return null;
   }
 
   /**

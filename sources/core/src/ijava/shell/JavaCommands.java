@@ -5,7 +5,7 @@ package ijava.shell;
 
 import java.net.*;
 import java.util.*;
-import com.fasterxml.jackson.jr.ob.*;
+import com.beust.jcommander.*;
 import ijava.extensibility.*;
 
 /**
@@ -19,41 +19,41 @@ public final class JavaCommands {
   /**
    * Handles %dependency invocations to add dependencies to modules to subsequent compilations.
    */
-  public static final class DependencyCommand implements Command {
-
-    private final Shell _shell;
+  public static final class DependencyCommand extends Command<DependencyCommand.Options> {
 
     public DependencyCommand(Shell shell) {
-      _shell = shell;
+      super(shell, Options.class);
     }
 
     @Override
-    public Object evaluate(String arguments, String data, long evaluationID,
+    public Object evaluate(Options options, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
-      if (arguments.startsWith("'") || arguments.startsWith("\"")) {
-        arguments = arguments.substring(1, arguments.length() - 1);
+      for (String uri: options.dependencies) {
+        getShell().addDependency(URI.create(uri));
       }
-
-      _shell.addDependency(URI.create(arguments));
       return null;
+    }
+
+
+    private static final class Options extends CommandOptions {
+
+      @Parameter(description = "Dependency URIs")
+      public List<String> dependencies = new ArrayList<String>();
     }
   }
 
   /**
    * Handles %jars invocations to list the current set of jar dependencies.
    */
-  public static final class JarsCommand implements Command {
-
-    private final Shell _shell;
+  public static final class JarsCommand extends Command.SimpleCommand {
 
     public JarsCommand(Shell shell) {
-      _shell = shell;
+      super(shell);
     }
 
     @Override
-    public Object evaluate(String arguments, String data, long evaluationID,
-                           Map<String, Object> metadata) throws Exception {
-      String[] jars = _shell.getReferences();
+    public Object evaluate(long evaluationID, Map<String, Object> metadata) throws Exception {
+      String[] jars = getShell().getReferences();
       Arrays.sort(jars);
 
       StringBuilder sb = new StringBuilder();
@@ -69,18 +69,15 @@ public final class JavaCommands {
   /**
    * Handles %imports invocations to list the current set of imports.
    */
-  public static final class ImportsCommand implements Command {
-
-    private final Shell _shell;
+  public static final class ImportsCommand extends Command.SimpleCommand {
 
     public ImportsCommand(Shell shell) {
-      _shell = shell;
+      super(shell);
     }
 
     @Override
-    public Object evaluate(String arguments, String data, long evaluationID,
-                           Map<String, Object> metadata) throws Exception {
-      String[] imports = _shell.getImports().split(";");
+    public Object evaluate(long evaluationID, Map<String, Object> metadata) throws Exception {
+      String[] imports = getShell().getImports().split(";");
       Arrays.sort(imports);
 
       StringBuilder sb = new StringBuilder();

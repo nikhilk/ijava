@@ -4,6 +4,7 @@
 package ijava.shell;
 
 import java.util.*;
+import com.beust.jcommander.*;
 import ijava.data.*;
 import ijava.extensibility.*;
 
@@ -15,52 +16,53 @@ public final class InteractiveCommands {
   private InteractiveCommands() {
   }
 
-  public static final class LoadCommand implements Command {
-
-    private final InteractiveShell _shell;
+  public static final class LoadCommand extends Command<LoadCommand.Options> {
 
     public LoadCommand(InteractiveShell shell) {
-      _shell = shell;
+      super(shell, Options.class);
     }
 
     @Override
-    public Object evaluate(String arguments, String data, long evaluationID,
+    public Object evaluate(Options options, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
-      if ((arguments == null) || arguments.isEmpty()) {
-        throw new EvaluationError("The name of the extension to load must be specified.");
-      }
+      return ((InteractiveShell)getShell()).addExtension(options.extension);
+    }
 
-      return _shell.addExtension(arguments);
+    public static final class Options extends CommandOptions {
+
+      @Parameter(names = "--ext", description = "The name of the extension to load.",
+          required = true)
+      public String extension;
     }
   }
 
-  public static final class ValuesCommand implements Command {
-
-    private final InteractiveShell _shell;
+  public static final class ValuesCommand extends Command<ValuesCommand.Options> {
 
     public ValuesCommand(InteractiveShell shell) {
-      _shell = shell;
+      super(shell, Options.class);
     }
 
     @Override
-    public Object evaluate(String arguments, String data, long evaluationID,
+    public Object evaluate(Options options, long evaluationID,
                            Map<String, Object> metadata) throws Exception {
-      if ((arguments == null) || arguments.isEmpty()) {
-        throw new EvaluationError("The values to retrive must be specified.");
-      }
-
       HashMap<String, Object> values = new HashMap<String, Object>();
 
-      InteractiveState state = _shell.getState();
+      InteractiveState state = ((InteractiveShell)getShell()).getState();
       Set<String> variables = state.getFields();
 
-      for (String name: arguments.split(",")) {
+      for (String name: options.names) {
         if (variables.contains(name)) {
           values.put(name, state.getValue(name));
         }
       }
 
       return new Data(values);
+    }
+
+    public static final class Options extends CommandOptions {
+
+      @Parameter(description = "The names of the values to return.")
+      public List<String> names = new ArrayList<String>();
     }
   }
 }

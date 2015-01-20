@@ -13,7 +13,7 @@ public final class CommandDataParser {
   private final static Pattern CommandPattern;
 
   static {
-    CommandPattern = Pattern.compile("^%(?<name>[a-z\\._]+)(\\s+)?(?<args>.*)?$",
+    CommandPattern = Pattern.compile("^%%?(?<name>[a-z\\._]+)(\\s+)?(?<args>.*)?$",
                                      Pattern.CASE_INSENSITIVE);
   }
 
@@ -30,14 +30,15 @@ public final class CommandDataParser {
     if (data.startsWith("%%")) {
       int newLineIndex = data.indexOf('\n');
       if ((newLineIndex < 0) || (data.length() <= (newLineIndex + 1))) {
-        return null;
+        content = "";
       }
+      else {
+        content = data.substring(newLineIndex + 1);
 
-      content = data.substring(newLineIndex + 1);
-
-      // Strip off everything starting with the first new line. Also strip out a leading '%'
-      // so the resulting data matches the syntax of single line commands.
-      data = data.substring(1, newLineIndex);
+        // Strip off everything starting with the first new line. Also strip out a leading '%'
+        // so the resulting data matches the syntax of single line commands.
+        data = data.substring(1, newLineIndex);
+      }
     }
 
     Matcher matcher = CommandDataParser.CommandPattern.matcher(data);
