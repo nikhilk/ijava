@@ -12,7 +12,7 @@ if [ "$?" = "0" ]; then
 
   cat ../sources/stub ../sources/core/target/core-0.1.jar > ../build/app/ijava
   chmod +x ../build/app/ijava
-  ls -l ../build
+  ls -l ../build/*
 else
   cat ../build/maven.log
 fi

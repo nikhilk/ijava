@@ -176,15 +176,14 @@ public final class InteractiveShell implements Shell {
   @SuppressWarnings("unchecked")
   private Object invokeCommand(String data, long evaluationID,
                                Map<String, Object> metadata) throws Exception {
-    CommandDataParser parser = new CommandDataParser();
-    CommandData commandData = parser.parse(data);
+    CommandData commandData = CommandData.parse(data);
 
     if (commandData == null) {
       throw new EvaluationError("Invalid syntax.");
     }
 
     String name = commandData.getName();
-    Command command = null;
+    Command<CommandOptions> command = null;
 
     command = _commands.get(name);
     if (command == null) {
@@ -204,7 +203,7 @@ public final class InteractiveShell implements Shell {
       throw new EvaluationError("Invalid syntax. Unknown command identifier '" + name + "'");
     }
 
-    CommandOptions options = commandData.parseOptions(command);
+    CommandOptions options = commandData.toOptions(command);
     if (options != null) {
       return command.evaluate(options, evaluationID, metadata);
     }
