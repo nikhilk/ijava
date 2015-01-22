@@ -7,6 +7,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import org.zeromq.*;
 import org.zeromq.ZMQ.*;
+import ijava.*;
 import ijava.extensibility.*;
 import ijava.kernel.protocol.*;
 
@@ -14,6 +15,8 @@ import ijava.kernel.protocol.*;
  * Represents a running Kernel instance.
  */
 public final class Session implements MessageServices {
+
+  public static final Log Log = ijava.Log.createLog("ijava.kernel");
 
   private final static int ZMQ_IO_THREADS = 1;
   private final static int POLL_INTERVAL = 500;

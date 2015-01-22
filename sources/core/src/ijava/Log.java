@@ -4,6 +4,8 @@
 package ijava;
 
 import java.io.*;
+import java.text.*;
+import java.util.*;
 import java.util.logging.*;
 
 /**
@@ -12,9 +14,17 @@ import java.util.logging.*;
 public final class Log {
 
   private final static String LOG_FILE_PATTERN = "ijava.%g.log";
-  private static Logger _logger;
 
-  private Log() {
+  private final Logger _logger;
+
+  private Log(Logger logger) {
+    _logger = logger;
+  }
+
+  public static Log createLog(String name) {
+    Logger logger = Logger.getLogger(name);
+    logger.setUseParentHandlers(true);
+    return new Log(logger);
   }
 
   public static void initializeLogging(Level logLevel) {
@@ -24,7 +34,14 @@ public final class Log {
 
   public static void initializeLogging(Level logLevel,
                                        String logPath, int maxLogFileSize, int maxLogFileCount) {
-    Logger logger = Logger.getAnonymousLogger();
+    // Suppress default
+    Logger logger = Logger.getLogger("");
+    Handler[] handlers = logger.getHandlers();
+    if (handlers[0] instanceof ConsoleHandler) {
+      logger.removeHandler(handlers[0]);
+    }
+
+    // Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     logger.setLevel(logLevel);
 
     if ((logPath != null) && !logPath.isEmpty()) {
@@ -41,23 +58,61 @@ public final class Log {
       catch (Exception e) {
       }
     }
+    else {
+      ConsoleHandler consoleHandler = new ConsoleHandler();
+      consoleHandler.setLevel(logLevel);
+      consoleHandler.setFormatter(new ConsoleLogFormatter());
 
-    Log._logger = logger;
+      logger.addHandler(consoleHandler);
+    }
   }
 
-  public static void logDebug(String message) {
-    Log._logger.fine(message);
+  public void debug(String message) {
+    _logger.fine(message);
   }
 
-  public static void logError(String message) {
-    Log._logger.severe(message);
+  public void error(String message) {
+    _logger.severe(message);
   }
 
-  public static void logInfo(String message) {
-    Log._logger.info(message);
+  public void info(String message) {
+    _logger.info(message);
   }
 
-  public static void logWarning(String message) {
-    Log._logger.warning(message);
+  public void warn(String message) {
+    _logger.warning(message);
+  }
+
+
+  private static final class ConsoleLogFormatter extends java.util.logging.Formatter {
+
+    private static final DateFormat df = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss.SSS");
+
+    @Override
+    public String format(LogRecord record) {
+      StringBuilder builder = new StringBuilder(1000);
+
+      String timestamp = ConsoleLogFormatter.df.format(new Date(record.getMillis()));
+      String level = "";
+      if (record.getLevel() == Level.FINE) {
+        level = "DEBUG";
+      }
+      else if (record.getLevel() == Level.WARNING) {
+        level = " WARN";
+      }
+      else if (record.getLevel() == Level.INFO) {
+        level = " INFO";
+      }
+      else if (record.getLevel() == Level.SEVERE) {
+        level = "ERROR";
+      }
+
+      builder.append(timestamp).append(" ");
+      builder.append(level).append(" ");
+      builder.append(record.getLoggerName()).append(": ");
+      builder.append(formatMessage(record)).append("\n");
+
+      return builder.toString();
+    }
   }
 }
