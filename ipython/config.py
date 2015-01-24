@@ -6,7 +6,11 @@ c = get_config()
 
 # Kernel setup
 kernel_path = os.path.join(os.path.dirname(__file__), 'ijava')
-c.KernelManager.kernel_cmd = [ kernel_path, '{connection_file}' ]
+c.KernelManager.kernel_cmd = [
+  kernel_path,
+  '--logLevel:info',
+  '{connection_file}'
+]
 
 # Protocol signing settings
 c.Session.key = b''

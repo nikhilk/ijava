@@ -4,7 +4,6 @@
 package ijava;
 
 import java.net.*;
-import java.util.logging.*;
 import ijava.kernel.*;
 import ijava.shell.*;
 
@@ -23,14 +22,13 @@ public final class Application {
       System.exit(1);
     }
 
+    Log.initializeLogging(options.logLevel, options.logPath, options.logSize, options.logFiles);
+
     URL applicationURL = Application.class.getProtectionDomain().getCodeSource().getLocation();
 
     InteractiveShell shell = new InteractiveShell();
     shell.initialize(applicationURL,
                      options.dependencies, options.shellDependencies, options.extensions);
-
-    // TODO: Make this customizable via command line
-    Log.initializeLogging(Level.INFO);
 
     Session session = new Session(options.sessionOptions, shell);
     session.start();

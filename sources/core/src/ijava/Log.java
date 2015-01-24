@@ -27,44 +27,35 @@ public final class Log {
     return new Log(logger);
   }
 
-  public static void initializeLogging(Level logLevel) {
-    Log.initializeLogging(logLevel,
-                          /* logPath */ null, /* maxLogFileSize */ 0, /* maxLogFileCount */ 0);
-  }
-
   public static void initializeLogging(Level logLevel,
                                        String logPath, int maxLogFileSize, int maxLogFileCount) {
-    // Suppress default
-    Logger logger = Logger.getLogger("");
-    Handler[] handlers = logger.getHandlers();
+    Logger globalLogger = Logger.getLogger("");
+    globalLogger.setLevel(logLevel);
+
+    Handler[] handlers = globalLogger.getHandlers();
     if (handlers[0] instanceof ConsoleHandler) {
-      logger.removeHandler(handlers[0]);
+      // Suppress default console handler
+      globalLogger.removeHandler(handlers[0]);
     }
 
-    // Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
-    logger.setLevel(logLevel);
-
+    Handler handler = null;
     if ((logPath != null) && !logPath.isEmpty()) {
       try {
         String logFilePattern = logPath + File.separator + Log.LOG_FILE_PATTERN;
-
-        FileHandler fileHandler = new FileHandler(logFilePattern, maxLogFileSize, maxLogFileCount,
-                                                  /* append */ true);
-        fileHandler.setLevel(logLevel);
-        // TODO: Set Formatter
-
-        logger.addHandler(fileHandler);
+        handler = new FileHandler(logFilePattern, maxLogFileSize, maxLogFileCount,
+                                  /* append */ true);
       }
       catch (Exception e) {
       }
     }
-    else {
-      ConsoleHandler consoleHandler = new ConsoleHandler();
-      consoleHandler.setLevel(logLevel);
-      consoleHandler.setFormatter(new ConsoleLogFormatter());
 
-      logger.addHandler(consoleHandler);
+    if (handler == null) {
+      handler = new ConsoleHandler();
     }
+
+    handler.setLevel(logLevel);
+    handler.setFormatter(new ConsoleLogFormatter());
+    globalLogger.addHandler(handler);
   }
 
   public void debug(String message) {
