@@ -3,6 +3,7 @@
 
 package ijava.kernel.protocol;
 
+import ijava.kernel.*;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -162,8 +163,9 @@ public abstract class Message {
 
     Class<? extends Message> messageClass = Message.MessageTypes.get(type);
     if (messageClass == null) {
-      System.out.println("Unknown message type: " + type);
-      // TODO: Logging
+      Session.Log.warn("Unknown message type %s. Cannot create message from\n" +
+          "Header: %s\nParent Header: %s\nMetadata: %s\nContent: %s",
+          type, header, parentHeader, metadata, content);
       return null;
     }
 
@@ -173,8 +175,7 @@ public abstract class Message {
       return messageCtor.newInstance(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
-      System.out.println("Unhandled message type: " + type);
-      // TODO: Logging
+      Session.Log.exception(e, "Could not instantiate %s message class", messageClass.getName());
       return null;
     }
   }
@@ -202,6 +203,7 @@ public abstract class Message {
   public MessageHandler getHandler() {
     Class<? extends MessageHandler> handlerClass = Message.MessageHandlers.get(getType());
     if (handlerClass == null) {
+      Session.Log.warn("Unhandled message %s", getType());
       return null;
     }
 
@@ -209,7 +211,7 @@ public abstract class Message {
       return handlerClass.newInstance();
     }
     catch (Exception e) {
-      // TODO: Logging
+      Session.Log.exception(e, "Could not instantiate %s message handler", handlerClass.getName());
       return null;
     }
   }

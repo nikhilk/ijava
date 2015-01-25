@@ -84,10 +84,11 @@ public final class Session implements MessageServices {
       return;
     }
 
+    Session.Log.info("%s message received.", message.getType());
+
     MessageHandler handler = message.getHandler();
     if (handler == null) {
-      System.out.println("Unhandled message: " + message.getType());
-      // TODO: Logging
+      Session.Log.warn("Ignoring unhandled message of type %s", message.getType());
       return;
     }
 
@@ -96,7 +97,7 @@ public final class Session implements MessageServices {
       handler.handleMessage(message, Session.this);
     }
     catch (Exception e) {
-      // TODO: Logging
+      Session.Log.exception(e, "Error handling message of type %s", message.getType());
     }
   }
 
@@ -118,6 +119,7 @@ public final class Session implements MessageServices {
     }
 
     if (socket != null) {
+      Session.Log.info("%s message sent", message.getType());
       MessageIO.writeMessage(socket, _signer, message);
     }
   }
@@ -249,7 +251,8 @@ public final class Session implements MessageServices {
           return (Map<String, String>)conversionMethod.invoke(value);
         }
         catch (Exception e) {
-          e.printStackTrace();
+          Session.Log.exception(e, "Failed to generate mime representations for %s",
+                                valueClass.getName());
         }
       }
 

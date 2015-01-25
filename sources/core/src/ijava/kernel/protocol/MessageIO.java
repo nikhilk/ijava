@@ -5,6 +5,7 @@ package ijava.kernel.protocol;
 
 import java.util.*;
 import com.fasterxml.jackson.jr.ob.*;
+import ijava.kernel.*;
 import org.zeromq.ZMQ.*;
 
 /**
@@ -24,27 +25,28 @@ public final class MessageIO {
    * @return the resulting Message instance.
    */
   public static Message readMessage(Socket socket, MessageSigner signer) {
+    String identity = null;
+    for (String id = socket.recvStr(); !id.equals(MessageIO.DELIMITER); id = socket.recvStr()) {
+      if (identity == null) {
+        identity = id;
+      }
+      else {
+        Session.Log.error("Recieved a message with multiple identities (unsupported)");
+      }
+    }
+
+    String signature = socket.recvStr();
+    String headerJson = socket.recvStr();
+    String parentHeaderJson = socket.recvStr();
+    String metadataJson = socket.recvStr();
+    String contentJson = socket.recvStr();
+
+    if (!signer.validate(signature, headerJson, parentHeaderJson, metadataJson, contentJson)) {
+      Session.Log.error("Unable to verify message signature");
+      return null;
+    }
+
     try {
-      String identity = null;
-      for (String id = socket.recvStr(); !id.equals(MessageIO.DELIMITER); id = socket.recvStr()) {
-        if (identity == null) {
-          identity = id;
-        }
-
-        // TODO: When are there multiple identities?
-      }
-
-      String signature = socket.recvStr();
-      String headerJson = socket.recvStr();
-      String parentHeaderJson = socket.recvStr();
-      String metadataJson = socket.recvStr();
-      String contentJson = socket.recvStr();
-
-      if (!signer.validate(signature, headerJson, parentHeaderJson, metadataJson, contentJson)) {
-        // TODO: Log failure
-        return null;
-      }
-
       Map<String, Object> header = JSON.std.mapFrom(headerJson);
       Map<String, Object> parentHeader = JSON.std.mapFrom(parentHeaderJson);
       Map<String, Object> metadata = JSON.std.mapFrom(metadataJson);
@@ -53,9 +55,9 @@ public final class MessageIO {
       return Message.createMessage(identity, header, parentHeader, metadata, content);
     }
     catch (Exception e) {
-      // TODO: Logging
-      e.printStackTrace();
-
+      Session.Log.exception(e, "Failed to parse incoming message\n" +
+          "Header: %s\nParent Header: %s\nMetadata: %s\nContent: %s",
+          headerJson, parentHeaderJson, metadataJson, contentJson);
       return null;
     }
   }
@@ -87,8 +89,7 @@ public final class MessageIO {
       socket.send(contentJson);
     }
     catch (Exception e) {
-      // TODO: Logging
-      e.printStackTrace();
+      Session.Log.exception(e, "Unable to send message of type %s", message.getType());
     }
   }
 }

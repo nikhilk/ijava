@@ -38,6 +38,7 @@ public final class Log {
       globalLogger.removeHandler(handlers[0]);
     }
 
+    boolean addConsoleHandler = logLevel == Level.FINE;
     Handler handler = null;
     if ((logPath != null) && !logPath.isEmpty()) {
       try {
@@ -51,27 +52,53 @@ public final class Log {
 
     if (handler == null) {
       handler = new ConsoleHandler();
+      addConsoleHandler = false;
     }
 
     handler.setLevel(logLevel);
     handler.setFormatter(new ConsoleLogFormatter());
     globalLogger.addHandler(handler);
+
+    if (addConsoleHandler) {
+      handler = new ConsoleHandler();
+      handler.setLevel(logLevel);
+      handler.setFormatter(new ConsoleLogFormatter());
+
+      globalLogger.addHandler(handler);
+    }
   }
 
-  public void debug(String message) {
-    _logger.fine(message);
+  public void debug(String message, Object... objects) {
+    _logger.fine(String.format(message, objects));
   }
 
-  public void error(String message) {
-    _logger.severe(message);
+  public void error(String message, Object... objects) {
+    _logger.severe(String.format(message, objects));
   }
 
-  public void info(String message) {
-    _logger.info(message);
+  public void exception(Exception e) {
+    exception(e, "");
   }
 
-  public void warn(String message) {
-    _logger.warning(message);
+  public void exception(Exception e, String message, Object... objects) {
+    StringWriter writer = new StringWriter();
+    PrintWriter printWriter = new PrintWriter(writer);
+
+    if ((message != null) && !message.isEmpty()) {
+      printWriter.append(String.format(message, objects)).append("\n");
+    }
+    e.printStackTrace(printWriter);
+    printWriter.flush();
+
+    error(writer.toString());
+  }
+
+  public void info(String message, Object... objects) {
+    _logger.info(String.format(message, objects));
+  }
+
+  public void warn(String message, Object... objects) {
+    _logger.warning(String.format(message, objects));
   }
 
 

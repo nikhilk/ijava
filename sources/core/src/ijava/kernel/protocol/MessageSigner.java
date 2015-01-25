@@ -3,6 +3,7 @@
 
 package ijava.kernel.protocol;
 
+import ijava.kernel.*;
 import javax.crypto.*;
 import javax.crypto.spec.*;
 
@@ -41,7 +42,7 @@ public class MessageSigner {
       return new HashMessageSigner(mac);
     }
     catch (Exception e) {
-      // TODO: Logging
+      Session.Log.exception(e);
       throw new IllegalArgumentException("Invalid key or algorithm.");
     }
   }

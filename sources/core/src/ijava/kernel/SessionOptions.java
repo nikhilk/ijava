@@ -126,8 +126,9 @@ public final class SessionOptions {
         options._stdinPort = (int)optionsMap.get("stdin_port");
       }
       catch (Exception e) {
-        // TODO: Logging
-        e.printStackTrace();
+        // NOTE: Can't log, as log has not been initialized before startup
+        System.err.println("Unable to read session options. Content:");
+        System.err.println(json);
       }
     }
 
@@ -140,7 +141,8 @@ public final class SessionOptions {
       return new String(bytes, StandardCharsets.UTF_8);
     }
     catch (IOException e) {
-      // TODO: Logging
+      // NOTE: Can't log, as log has not been initialized before startup
+      System.err.println(String.format("Unable to load session options file at %s", optionsPath));
       return "";
     }
   }
