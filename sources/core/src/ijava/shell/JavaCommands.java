@@ -35,7 +35,7 @@ public final class JavaCommands {
     }
 
 
-    private static final class Options extends CommandOptions {
+    public static final class Options extends CommandOptions {
 
       @Parameter(description = "Dependency URIs")
       public List<String> dependencies = new ArrayList<String>();

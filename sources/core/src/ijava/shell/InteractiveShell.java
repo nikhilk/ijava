@@ -8,6 +8,7 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
+import ijava.*;
 import ijava.extensibility.*;
 import ijava.shell.compiler.*;
 
@@ -15,6 +16,8 @@ import ijava.shell.compiler.*;
  * Provides the interactive shell or REPL functionality for Java.
  */
 public final class InteractiveShell implements Shell {
+
+  public static final Log Log = ijava.Log.createLog("ijava.shell");
 
   private final static String ERROR_TYPE_REDECLARED =
       "The type of the variable '%s', '%s', has changed, and its value is no longer usable.\n" +
@@ -208,7 +211,7 @@ public final class InteractiveShell implements Shell {
       return command.evaluate(options, evaluationID, metadata);
     }
 
-    return null;
+    throw new EvaluationError("Invalid syntax. Unable to parse options for command '" + name + "'");
   }
 
   /**
