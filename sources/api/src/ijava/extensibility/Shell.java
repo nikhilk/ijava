@@ -74,7 +74,7 @@ public interface Shell extends Evaluator {
    * @param name the name of the command used in invoking it.
    * @param command the Command implementation to be registered.
    */
-  public void registerCommand(String name, Command command);
+  public void registerCommand(String name, Command<?> command);
 
   /**
    * Registers a command so it may be invoked within the shell.
@@ -82,7 +82,7 @@ public interface Shell extends Evaluator {
    * @param dataType the type of data to register for.
    * @param command the Command implementation to be registered.
    */
-  public void registerDataCommand(String name, String dataType, Command command);
+  public void registerDataCommand(String name, String dataType, Command<?> command);
 
   /**
    * Registers a resolver that can be used to resolve dependency URIs.

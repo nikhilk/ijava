@@ -24,8 +24,8 @@ public final class InteractiveShell implements Shell {
           "Please run the code to re-initialize that variable first, or simply re-run this code " +
           "to ignore the error and discard it.";
 
-  private final HashMap<String, Command> _commands;
-  private final HashMap<String, Command> _jsonCommands;
+  private final HashMap<String, Command<?>> _commands;
+  private final HashMap<String, Command<?>> _jsonCommands;
   private final HashMap<String, DependencyResolver> _resolvers;
   private final HashMap<String, Object> _extensions;
 
@@ -45,8 +45,8 @@ public final class InteractiveShell implements Shell {
    * Initializes an instance of an InteractiveShell.
    */
   public InteractiveShell() {
-    _commands = new HashMap<String, Command>();
-    _jsonCommands = new HashMap<String, Command>();
+    _commands = new HashMap<String, Command<?>>();
+    _jsonCommands = new HashMap<String, Command<?>>();
     _resolvers = new HashMap<String, DependencyResolver>();
     _extensions = new HashMap<String, Object>();
 
@@ -186,7 +186,7 @@ public final class InteractiveShell implements Shell {
     }
 
     String name = commandData.getName();
-    Command<CommandOptions> command = null;
+    Command<?> command = null;
 
     command = _commands.get(name);
     if (command == null) {
@@ -208,7 +208,7 @@ public final class InteractiveShell implements Shell {
 
     CommandOptions options = commandData.toOptions(command);
     if (options != null) {
-      return command.evaluate(options, evaluationID, metadata);
+      return ((Command<CommandOptions>)command).evaluate(options, evaluationID, metadata);
     }
 
     throw new EvaluationError("Invalid syntax. Unable to parse options for command '" + name + "'");
@@ -582,7 +582,7 @@ public final class InteractiveShell implements Shell {
    * {@link Shell}
    */
   @Override
-  public void registerCommand(String name, Command command) {
+  public void registerCommand(String name, Command<?> command) {
     _commands.put(name, command);
   }
 
@@ -590,7 +590,7 @@ public final class InteractiveShell implements Shell {
    * {@link Shell}
    */
   @Override
-  public void registerDataCommand(String name, String dataType, Command command) {
+  public void registerDataCommand(String name, String dataType, Command<?> command) {
     if (dataType.equals(ShellData.JSON)) {
       _jsonCommands.put(name, command);
     }
