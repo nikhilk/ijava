@@ -9,6 +9,8 @@ mvn clean package -DskipTests -l ../build/maven.log -f ../sources
 
 if [ "$?" = "0" ]; then
   cp ../sources/api/target/api-0.1.jar ../build/app/ijavart.jar
+  cp ~/.m2/repository/joda-time/joda-time/2.7/joda-time-2.7.jar \
+    ../build/app/joda-time.jar
 
   cat ../sources/stub ../sources/core/target/core-0.1.jar > ../build/app/ijava
   chmod +x ../build/app/ijava

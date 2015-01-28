@@ -9,6 +9,7 @@ kernel_path = os.path.join(os.path.dirname(__file__), 'ijava')
 c.KernelManager.kernel_cmd = [
   kernel_path,
   '--logLevel:info',
+  '--dep:joda-time.jar',
   '{connection_file}'
 ]
 

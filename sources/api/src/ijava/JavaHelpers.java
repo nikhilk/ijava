@@ -9,6 +9,7 @@ import java.nio.charset.*;
 import java.nio.file.*;
 import java.util.*;
 import ijava.data.*;
+import org.joda.time.*;
 
 /**
  * Various helper methods for use in an ijava shell.
@@ -19,6 +20,10 @@ public final class JavaHelpers {
   //       return a null value. This is to allow using these methods as an expression.
 
   private JavaHelpers() {
+  }
+
+  public static DateTime date(String s) {
+    return DateTime.parse(s);
   }
 
   public static <K, V> Map.Entry<K, V> entry(K key, V value) {
@@ -59,6 +64,10 @@ public final class JavaHelpers {
     }
 
     return map;
+  }
+
+  public static DateTime now() {
+    return DateTime.now();
   }
 
   public static Object print(boolean b) {
@@ -172,6 +181,10 @@ public final class JavaHelpers {
 
   public static <K, V> Table table(Map<K, V> map) {
     return new Table(map);
+  }
+
+  public static DateTime today() {
+    return DateTime.now().withTimeAtStartOfDay();
   }
 
   public static Object writeFile(String file, byte[] bytes) throws IOException {

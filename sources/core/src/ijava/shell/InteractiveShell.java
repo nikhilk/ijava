@@ -133,14 +133,17 @@ public final class InteractiveShell implements Shell {
     String javaRuntimePath = resourcePath.substring(resourcePath.indexOf(":") + 1,
                                                     resourcePath.indexOf("!/"));
     String ijavaRuntimePath = new URL(appURL, "ijavart.jar").getPath();
+    String jodaTimePath = new URL(appURL, "joda-time.jar").getPath();
 
     _jars.add(javaRuntimePath);
     _jars.add(ijavaRuntimePath);
+    _jars.add(jodaTimePath);
 
     // Import a few packages by default
     addImport("java.io.*", /* staticImport */ false);
     addImport("java.util.*", /* staticImport */ false);
     addImport("java.net.*", /* staticImport */ false);
+    addImport("org.joda.time.*", /* staticImport */ false);
     addImport("ijava.JavaHelpers.*", /* staticImport */ true);
 
     // Load up the dependencies - all of them get loaded via a class loader.
