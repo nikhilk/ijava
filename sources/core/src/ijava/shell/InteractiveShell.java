@@ -122,6 +122,9 @@ public final class InteractiveShell implements Shell {
     registerCommand("jars", new JavaCommands.JarsCommand(this));
     registerCommand("imports", new JavaCommands.ImportsCommand(this));
 
+    // Register the commands offered for code shortcuts
+    registerCommand("tuple", new CodeCommands.TupleCommand(this));
+
     // Register the standard dependency resolver by default
     registerResolver("file", new JavaResolvers.FileResolver());
     registerResolver("maven", new JavaResolvers.MavenResolver());
