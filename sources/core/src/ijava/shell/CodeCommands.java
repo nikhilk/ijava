@@ -25,6 +25,9 @@ public final class CodeCommands {
       StringBuilder codeBuilder = new StringBuilder();
       codeBuilder.append("public final class ");
       codeBuilder.append(options.name);
+      if (options.serializable) {
+        codeBuilder.append(" implements java.io.Serializable");
+      }
       codeBuilder.append(" {\n");
 
       StringBuilder paramsBuilder = new StringBuilder();
@@ -127,8 +130,11 @@ public final class CodeCommands {
       @Parameter(names = "--defaultType", description = "The default type of members")
       public String defaultType = "String";
 
-      @Parameter(names = "--immutable", description = "Whether to generate an immutable tuple.")
+      @Parameter(names = "--immutable", description = "Whether to define an immutable tuple.")
       public boolean immutable = false;
+
+      @Parameter(names = "--serializable", description = "Whether to define a serializable tuple.")
+      public boolean serializable = false;
     }
   }
 }
